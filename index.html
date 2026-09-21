@@ -1,0 +1,125 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Brainrot Game Shop</title>
+<meta name="description" content="Free browser games to play with friends: a platform fighter, a co-op zombie shooter, and a phone-on-the-forehead party game. No installs, no accounts.">
+<meta property="og:title" content="Brainrot Game Shop">
+<meta property="og:description" content="Free browser games to play with friends. No installs, no accounts.">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://brainrotgame.shop/">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%230d0f14'/%3E%3Ccircle cx='32' cy='32' r='17' fill='none' stroke='%23ff5c5c' stroke-width='7'/%3E%3Ccircle cx='32' cy='32' r='5' fill='%23ffd23f'/%3E%3C/svg%3E">
+<style>
+  :root {
+    --bg: #0d0f14; --panel: #151923; --panel-2: #1b2130; --line: rgba(255,255,255,.09);
+    --ink: #f2f4f8; --muted: #9aa4b5; --brand: #ff5c5c; --gold: #ffd23f; --green: #5ef28a; --sky: #6fc3ff;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; background: var(--bg); color: var(--ink); font: 16px/1.55 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+  a { color: inherit; }
+  .wrap { max-width: 1040px; margin: 0 auto; padding: 0 16px; }
+  header { padding: 64px 0 28px; }
+  .logo { display: flex; align-items: center; gap: 14px; text-decoration: none; }
+  .logo .mark { width: 44px; height: 44px; border-radius: 12px; background: #000; display: grid; place-items: center; box-shadow: 0 0 0 1px var(--line), 0 10px 30px rgba(0,0,0,.5); }
+  .logo .mark i { width: 18px; height: 18px; border: 5px solid var(--brand); border-radius: 50%; position: relative; }
+  .logo .mark i::after { content: ""; position: absolute; inset: 3px; background: var(--gold); border-radius: 50%; }
+  .logo b { font-size: 22px; letter-spacing: -.01em; }
+  .logo b span { color: var(--brand); }
+  h1 { font-size: clamp(34px, 6vw, 56px); line-height: 1.05; letter-spacing: -.02em; margin: 26px 0 12px; max-width: 14ch; }
+  .lede { color: var(--muted); font-size: 18px; max-width: 46ch; margin: 0; }
+  .lede b { color: var(--ink); font-weight: 600; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(290px, 1fr)); gap: 18px; padding: 26px 0 40px; }
+  .card { position: relative; display: flex; flex-direction: column; gap: 12px; padding: 22px; border-radius: 18px; background: linear-gradient(180deg, var(--panel-2), var(--panel)); border: 1px solid var(--line); box-shadow: 0 14px 40px rgba(0,0,0,.35); overflow: hidden; }
+  .card::before { content: ""; position: absolute; inset: 0 0 auto; height: 4px; background: var(--accent); }
+  .card .art { height: 140px; border-radius: 12px; display: grid; place-items: center; background: radial-gradient(120% 90% at 50% 100%, color-mix(in srgb, var(--accent) 28%, transparent), transparent 70%), #0b0d12; border: 1px solid var(--line); }
+  .card .art svg { width: 100%; height: 100%; }
+  .card h2 { margin: 6px 0 0; font-size: 24px; letter-spacing: -.01em; }
+  .card h2 small { display: block; font-size: 13px; font-weight: 600; color: var(--accent); letter-spacing: .08em; text-transform: uppercase; margin-bottom: 4px; }
+  .card p { margin: 0; color: var(--muted); }
+  .meta { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 2px; }
+  .meta span { font-size: 12px; font-weight: 600; color: var(--ink); background: rgba(255,255,255,.06); border: 1px solid var(--line); border-radius: 999px; padding: 3px 10px; }
+  .play { margin-top: auto; display: inline-flex; align-items: center; justify-content: center; gap: 10px; padding: 13px 18px; border-radius: 12px; background: var(--accent); color: #0b0d12; font-weight: 800; text-decoration: none; letter-spacing: .01em; transition: transform .12s ease, filter .12s ease; }
+  .play:hover { transform: translateY(-1px); filter: brightness(1.08); }
+  .play:active { transform: translateY(0); }
+  .play svg { width: 16px; height: 16px; }
+  .note { color: var(--muted); font-size: 14px; }
+  .note a { color: var(--ink); }
+  footer { border-top: 1px solid var(--line); padding: 26px 0 60px; color: var(--muted); font-size: 14px; display: flex; flex-wrap: wrap; gap: 8px 22px; }
+  @media (max-width: 480px) { header { padding-top: 40px; } .card { padding: 18px; } }
+  @media (prefers-reduced-motion: reduce) { .play { transition: none; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <a class="logo" href="/"><span class="mark"><i></i></span><b>brainrot<span>game</span>.shop</b></a>
+    <h1>Games to lose an evening to.</h1>
+    <p class="lede">Three free games that run in the browser. <b>No installs, no accounts</b> — send a link and you're playing.</p>
+  </header>
+
+  <main class="grid">
+
+    <article class="card" style="--accent: var(--gold)">
+      <div class="art" aria-hidden="true">
+        <svg viewBox="0 0 300 140" fill="none">
+          <rect x="0" y="118" width="300" height="6" rx="3" fill="#2a3040"/>
+          <rect x="70" y="128" width="160" height="4" rx="2" fill="#1a1f2b"/>
+          <g transform="translate(96 30)"><rect x="-2" y="-14" width="4" height="16" fill="#8a94a8"/><rect x="-22" y="0" width="44" height="72" rx="20" fill="#ff5c5c"/><ellipse cx="0" cy="70" rx="24" ry="6" fill="#000" opacity=".35"/></g>
+          <g transform="translate(200 44)"><rect x="-2" y="-14" width="4" height="16" fill="#8a94a8"/><rect x="-22" y="0" width="44" height="72" rx="20" fill="#6fc3ff" transform="rotate(-18)"/></g>
+          <path d="M150 62 l14 -6 -4 12 z" fill="#ffd23f"/><path d="M136 78 l-14 4 6 -10 z" fill="#ffd23f"/>
+        </svg>
+      </div>
+      <h2><small>Platform fighter</small>Bag Brawl</h2>
+      <p>Punching bags with personalities, knocked off the stage in the best Smash tradition. Dash, glide, charge — every fighter has its own kit and its own CPU to practise against.</p>
+      <div class="meta"><span>1–4 players</span><span>Online, rollback netcode</span><span>Keyboard + mouse</span></div>
+      <a class="play" href="https://bagbrawl.app">Play Bag Brawl <svg viewBox="0 0 16 16"><path d="M3 2v12l10-6z" fill="currentColor"/></svg></a>
+    </article>
+
+    <article class="card" style="--accent: var(--brand)">
+      <div class="art" aria-hidden="true">
+        <svg viewBox="0 0 300 140" fill="none">
+          <rect x="0" y="100" width="300" height="40" fill="#151a24"/>
+          <rect x="30" y="56" width="70" height="44" fill="#232a37"/><rect x="190" y="48" width="84" height="52" fill="#1f2531"/>
+          <rect x="44" y="66" width="10" height="12" fill="#ffb060"/><rect x="214" y="60" width="10" height="12" fill="#ffb060"/>
+          <circle cx="248" cy="24" r="9" fill="#dfe6f2"/>
+          <g fill="#3a4a3a"><rect x="126" y="70" width="10" height="30" rx="3"/><rect x="142" y="66" width="10" height="34" rx="3"/><rect x="160" y="72" width="10" height="28" rx="3"/></g>
+          <circle cx="150" cy="86" r="14" fill="none" stroke="#ff5c5c" stroke-width="2"/><path d="M150 68v8M150 96v8M132 86h8M160 86h8" stroke="#ff5c5c" stroke-width="2"/>
+        </svg>
+      </div>
+      <h2><small>Co-op zombie shooter</small>Deadpoint</h2>
+      <p>A co-op zombie roguelike. One town, one squad, one helicopter out — survive twenty rounds, buy guns off the walls, draft upgrades, and don't let anyone bleed out.</p>
+      <div class="meta"><span>1–8 players</span><span>Online co-op</span><span>Keyboard + mouse</span></div>
+      <a class="play" href="https://deadpoint.bagbrawl.app">Play Deadpoint <svg viewBox="0 0 16 16"><path d="M3 2v12l10-6z" fill="currentColor"/></svg></a>
+    </article>
+
+    <article class="card" style="--accent: var(--green)">
+      <div class="art" aria-hidden="true">
+        <svg viewBox="0 0 300 140" fill="none">
+          <rect x="112" y="18" width="76" height="118" rx="12" fill="#0b0d12" stroke="#3a4152" stroke-width="3"/>
+          <rect x="118" y="28" width="64" height="98" rx="6" fill="#151923"/>
+          <rect x="118" y="28" width="32" height="98" rx="6" fill="#ff5c5c" opacity=".22"/><rect x="150" y="28" width="32" height="98" rx="6" fill="#5ef28a" opacity=".22"/>
+          <text x="134" y="82" font-family="system-ui, sans-serif" font-size="20" font-weight="800" fill="#ff8a8a" text-anchor="middle">✕</text>
+          <text x="166" y="82" font-family="system-ui, sans-serif" font-size="20" font-weight="800" fill="#8affb4" text-anchor="middle">✓</text>
+          <path d="M60 40q-14 30 0 60M40 30q-22 40 0 80" stroke="#5ef28a" stroke-width="3" stroke-linecap="round" opacity=".6"/>
+          <path d="M240 40q14 30 0 60M260 30q22 40 0 80" stroke="#5ef28a" stroke-width="3" stroke-linecap="round" opacity=".6"/>
+        </svg>
+      </div>
+      <h2><small>Party game</small>Heads Up</h2>
+      <p>Hold the phone on your forehead; your friends act it out. Tap the left half to skip, the right half when you get it. One phone, any number of friends.</p>
+      <div class="meta"><span>Any group</span><span>One phone</span><span>Touch</span></div>
+      <a class="play" href="https://headsup.bagbrawl.app">Play Heads Up <svg viewBox="0 0 16 16"><path d="M3 2v12l10-6z" fill="currentColor"/></svg></a>
+    </article>
+
+  </main>
+
+  <p class="note">The multiplayer games run peer to peer between the people playing; the site only introduces you. Everything here is original work.</p>
+
+  <footer>
+    <span>© <span id="y"></span> brainrotgame.shop</span>
+    <span>Made for playing with friends.</span>
+  </footer>
+</div>
+<script>document.getElementById('y').textContent = new Date().getFullYear();</script>
+</body>
+</html>
