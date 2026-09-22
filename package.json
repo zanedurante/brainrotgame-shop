@@ -1,0 +1,12 @@
+{
+  "name": "brainrotgame-shop",
+  "version": "1.0.0",
+  "private": true,
+  "description": "The front door for the games at brainrotgame.shop: one static page, served by Caddy on the games' droplet.",
+  "type": "module",
+  "scripts": {
+    "serve": "python -m http.server 3011 --bind 127.0.0.1",
+    "deploy": "bash scripts/deploy.sh",
+    "provision": "bash ops/provision.sh"
+  }
+}
