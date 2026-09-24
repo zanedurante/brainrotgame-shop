@@ -53,7 +53,7 @@
 <body>
 <div class="wrap">
   <header>
-    <a class="logo" href="/"><span class="mark"><i></i></span><b>brainrot<span>game</span>.shop</b></a>
+    <a class="logo" href="/"><span class="mark"><i></i></span><b id="brand">brainrot<span>game</span>.shop</b></a>
     <h1>Games to lose an evening to.</h1>
     <p class="lede">Three free games that run in the browser. <b>No installs, no accounts</b> — send a link and you're playing.</p>
   </header>
@@ -116,10 +116,20 @@
   <p class="note">The multiplayer games run peer to peer between the people playing; the site only introduces you. Everything here is original work.</p>
 
   <footer>
-    <span>© <span id="y"></span> brainrotgame.shop</span>
+    <span>© <span id="y"></span> <span id="brandFoot">brainrotgame.shop</span></span>
     <span>Made for playing with friends.</span>
   </footer>
 </div>
-<script>document.getElementById('y').textContent = new Date().getFullYear();</script>
+<script>
+  document.getElementById('y').textContent = new Date().getFullYear();
+  // The same page answers on more than one domain. Say the name of the one the visitor typed.
+  const BRANDS = { 'brainrotgame.shop': ['brainrot', 'game', '.shop'], 'gameslop.now': ['game', 'slop', '.now'] };
+  const host = location.hostname.replace(/^www\./, ''), parts = BRANDS[host];
+  if (parts) {
+    document.getElementById('brand').innerHTML = `${parts[0]}<span>${parts[1]}</span>${parts[2]}`;
+    document.getElementById('brandFoot').textContent = host;
+    document.title = host === 'gameslop.now' ? 'Game Slop' : document.title;
+  }
+</script>
 </body>
 </html>
