@@ -116,15 +116,14 @@ class CounterTests(unittest.TestCase):
             self.assertEqual(status, 200)
             self.assertEqual(json.loads(body), {"counts": expected})
             self.assertEqual(headers["Access-Control-Allow-Origin"], ORIGIN)
-        old_port = self.server.port
         self.server.close()
+        # Use a fresh ephemeral listener: Linux may retain the old TCP port in
+        # TIME_WAIT after process exit. Persistence depends on the DB, not port reuse.
         self.server = RunningServer(self.db)
         self.assertEqual(self.counts(), expected)
         self.assertEqual(self.increment("deadpoint")[0], 200)
         expected["deadpoint"] += 1
         self.assertEqual(self.counts(), expected)
-        with socket.socket() as listener:
-            listener.bind(("127.0.0.1", old_port))
 
     def test_concurrent_increments_are_atomic(self):
         with ThreadPoolExecutor(max_workers=16) as workers:
