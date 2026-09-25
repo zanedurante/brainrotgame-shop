@@ -59,6 +59,24 @@ Operations: `systemctl status gameslop-plays`, `journalctl -u gameslop-plays`, a
 database file while its WAL is active). Do not replace the state directory during a portal release.
 The service runs independently of the game deployment account and does not change game releases.
 
+### Scheduled JSON exports
+
+`/etc/cron.d/gameslop-plays-export` checks hourly at minute 17; the exporter writes a snapshot only
+once 72 hours have passed since the previous successful export. This avoids the shorter intervals
+that a day-of-month `*/3` cron expression creates at month boundaries. After server downtime, the
+next check saves an overdue snapshot. The first export is created during installation.
+
+Snapshots are private, timestamped JSON files in **`/var/backups/gameslop/plays`**, containing a UTC
+export timestamp and a `counts` map for all nine games. The export reads a consistent SQLite
+snapshot, writes atomically, and never changes live counters. Old exports are retained. Failures
+leave the previous successful snapshot intact and are logged in `/var/log/gameslop-plays-export.log`.
+This folder is on the same server; it is not an off-server disaster recovery backup.
+
+The normal deployment preserves the schedule and export history. To install only this job, upload
+`counter/export_counts.py`, `ops/gameslop-plays-export.cron`, and `ops/install-exports.sh` into a
+`/tmp/gameslop-portal.<id>` directory and run `bash <directory>/ops/install-exports.sh <directory>` as
+root. For an extra manual snapshot, run the cron command with `--force` (without the log redirection).
+
 ## Adding a game
 
 Copy one of the `<article class="card" data-game="...">` blocks in `index.html`, give it a unique

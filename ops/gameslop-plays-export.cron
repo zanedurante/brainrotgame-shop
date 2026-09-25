@@ -1,0 +1,5 @@
+# Check hourly; the exporter only saves after 72 hours since the last successful snapshot.
+# The interval remains three days across month/year boundaries and server restarts.
+SHELL=/bin/sh
+PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+17 * * * * root /usr/bin/python3 -I /opt/brainrotgame/counter/export_counts.py --db /var/lib/gameslop-plays/plays.sqlite3 --output /var/backups/gameslop/plays >> /var/log/gameslop-plays-export.log 2>&1
