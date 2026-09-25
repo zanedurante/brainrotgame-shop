@@ -41,10 +41,13 @@ No accounts, cookies, IP addresses, or other visitor identifiers are stored by t
 
 The owner requested initial totals of **225 for Deadpoint**, **30 for Bag Brawl**, **10 for Primordial**,
 and **0 for every other game**. These initialize new database rows only; restarts and redeployments
-never reset existing totals. Equal totals retain the original catalog order (Primordial, then
-Primordial: Tactics, followed by the other games). Once a visitor interacts with a card, its position
-stays stable for that visit so links do not move under the pointer or keyboard focus. Counts still
-refresh when returning through the browser's back/forward cache.
+never reset existing totals. The catalog ranks games by the latest shared totals, highest first.
+Equal totals retain the original catalog order (Primordial, then Primordial: Tactics, followed by
+the other games). Hovering or focusing a card does not freeze the ranking, and keyboard focus stays
+on the same link when cards move. Reordering waits only while a pointer button or activation key
+is held, then applies after the gesture so the intended link still opens. Successful count responses,
+including Play increments, update the ranking. Returning to the portal tab or restoring it through
+the browser's back/forward cache refreshes both totals and order.
 
 The `gameslop-plays.service` systemd unit starts on boot, runs with a restricted dynamic user, and
 stores SQLite state at `/var/lib/gameslop-plays/plays.sqlite3` outside the public directory. SQLite

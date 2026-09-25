@@ -13,15 +13,34 @@
   const rankingNote = document.getElementById('ranking-note');
   const formatter = new Intl.NumberFormat(document.documentElement.lang || 'en');
   let counts = null;
-  let interactionStarted = false;
   let ranked = false;
   let readNumber = 0;
+  const pressedPointers = new Set();
+  const pressedKeys = new Set();
 
-  // Once someone reaches a card, keep every link where they found it.
-  const lockOrder = event => {
-    if (event.target instanceof Element && event.target.closest('.card[data-game]')) interactionStarted = true;
+  // Finish a click/keypress before moving its target, but never lock the ranking
+  // for the rest of the visit just because a card was hovered or focused.
+  const isCardEvent = event => event.target instanceof Element && event.target.closest('.card[data-game]');
+  grid.addEventListener('pointerdown', event => {
+    if (isCardEvent(event)) pressedPointers.add(event.pointerId);
+  }, { passive: true });
+  grid.addEventListener('keydown', event => {
+    if (isCardEvent(event) && ['Enter', ' '].includes(event.key)) pressedKeys.add(event.key);
+  });
+  const finishPointer = event => setTimeout(() => {
+    pressedPointers.delete(event.pointerId);
+    rankCards();
+  }, 0);
+  for (const type of ['pointerup', 'pointercancel']) window.addEventListener(type, finishPointer, { passive: true });
+  window.addEventListener('keyup', event => setTimeout(() => {
+    pressedKeys.delete(event.key);
+    rankCards();
+  }, 0));
+  const clearGesture = () => {
+    pressedPointers.clear();
+    pressedKeys.clear();
   };
-  for (const type of ['pointerdown', 'pointerover', 'focusin', 'keydown']) grid.addEventListener(type, lockOrder, { passive: true });
+  window.addEventListener('blur', () => { clearGesture(); rankCards(); });
 
   function parseCounts(payload) {
     if (!payload || typeof payload.counts !== 'object' || payload.counts === null || Array.isArray(payload.counts)) throw new Error('Invalid play totals');
@@ -34,7 +53,20 @@
     return values;
   }
 
-  function displayCounts(values, mayRank) {
+  function rankCards() {
+    if (!counts || pressedPointers.size || pressedKeys.size) return;
+    const ordered = [...cards].sort((left, right) => counts[right.slug] - counts[left.slug] || left.order - right.order);
+    const focused = grid.contains(document.activeElement) ? document.activeElement : null;
+    for (const [index, { element }] of ordered.entries()) {
+      if (grid.children[index] !== element) grid.insertBefore(element, grid.children[index] ?? null);
+    }
+    if (focused && document.activeElement !== focused) focused.focus({ preventScroll: true });
+    ranked = true;
+    if (rankingTitle) rankingTitle.textContent = 'Most played';
+    if (rankingNote) rankingNote.textContent = 'Ranked by shared play clicks';
+  }
+
+  function displayCounts(values) {
     // Totals only increase. An older GET/POST response must not erase a newer total.
     counts = Object.fromEntries(cards.map(({ slug }) => [slug, Math.max(counts?.[slug] ?? 0, values[slug])]));
     for (const { slug, label } of cards) {
@@ -45,24 +77,18 @@
       label.replaceChildren(number, document.createTextNode(counts[slug] === 1 ? ' play' : ' plays'));
       label.title = 'Shared play clicks';
     }
-    if (mayRank && !interactionStarted && !grid.contains(document.activeElement)) {
-      const ordered = [...cards].sort((left, right) => counts[right.slug] - counts[left.slug] || left.order - right.order);
-      const fragment = document.createDocumentFragment();
-      for (const { element } of ordered) fragment.append(element);
-      grid.append(fragment);
-      ranked = true;
-    }
+    rankCards();
     if (rankingTitle) rankingTitle.textContent = ranked ? 'Most played' : 'All games';
     if (rankingNote) rankingNote.textContent = ranked ? 'Ranked by shared play clicks' : 'Shared play clicks';
   }
 
-  async function refreshCounts(mayRank) {
+  async function refreshCounts() {
     const requestNumber = ++readNumber;
     try {
       const response = await fetch('/api/plays', { credentials: 'same-origin', mode: 'same-origin', cache: 'no-store', headers: { Accept: 'application/json' } });
       if (!response.ok) throw new Error('Play counts unavailable');
       const values = parseCounts(await response.json());
-      if (requestNumber === readNumber) displayCounts(values, mayRank);
+      if (requestNumber === readNumber) displayCounts(values);
     } catch {
       if (requestNumber !== readNumber) return;
       if (rankingNote) rankingNote.textContent = counts ? 'Last loaded play clicks' : 'Play counts unavailable';
@@ -74,7 +100,6 @@
     const link = event.target instanceof Element ? event.target.closest('a.play') : null;
     const card = link?.closest('.card[data-game]');
     if (!card || !grid.contains(card)) return;
-    interactionStarted = true;
     // Do not prevent navigation or wait for analytics, including new-tab clicks.
     fetch(`/api/plays/${encodeURIComponent(card.dataset.game)}`, {
       method: 'POST',
@@ -86,14 +111,18 @@
     }).then(response => {
       if (!response.ok) throw new Error('Play click was not recorded');
       return response.json();
-    }).then(payload => displayCounts(parseCounts(payload), false)).catch(() => {});
+    }).then(payload => displayCounts(parseCounts(payload))).catch(() => {});
   }
 
   grid.addEventListener('click', recordPlay);
   grid.addEventListener('auxclick', recordPlay);
   window.addEventListener('pageshow', event => {
-    // Back/forward cache restores the old DOM. Refresh totals without moving it.
-    if (event.persisted) void refreshCounts(false);
+    // Back/forward cache restores an old DOM, so refresh its ranking as well.
+    if (event.persisted) { clearGesture(); void refreshCounts(); }
   });
-  void refreshCounts(true);
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible') void refreshCounts();
+    else clearGesture();
+  });
+  void refreshCounts();
 })();

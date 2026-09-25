@@ -10,6 +10,7 @@ try { playwright = await import('playwright'); }
 catch { playwright = await import('../../../gameslop-games/node_modules/playwright/index.mjs'); }
 
 const originalOrder = ['primordial', 'primordial-tactics', 'bagbrawl', 'deadpoint', 'headsup', 'grove', 'emberwild', 'emberfell', 'pelaglyph'];
+const seededRanking = ['deadpoint', 'bagbrawl', 'primordial', 'primordial-tactics', 'headsup', 'grove', 'emberwild', 'emberfell', 'pelaglyph'];
 const seeds = () => ({ primordial: 10, 'primordial-tactics': 0, bagbrawl: 30, deadpoint: 225, headsup: 0, grove: 0, emberwild: 0, emberfell: 0, pelaglyph: 0 });
 const html = await readFile(new URL('../index.html', import.meta.url));
 const script = await readFile(new URL('../assets/play-counts.js', import.meta.url));
@@ -62,13 +63,15 @@ async function open({ waitCounts = true } = {}) {
 }
 const order = page => page.locator('.card[data-game]').evaluateAll(elements => elements.map(element => element.dataset.game));
 const countText = (page, slug) => page.locator(`[data-game="${slug}"] [data-play-count]`).textContent();
+const waitOrder = (page, expected) => page.waitForFunction(expectedOrder =>
+  [...document.querySelectorAll('.card[data-game]')].map(card => card.dataset.game).join(',') === expectedOrder.join(','), expected);
 
-test('shared play counts keep navigation native, totals truthful, and ranking stable', async t => {
+test('shared play counts keep navigation native, totals truthful, and ranking current', async t => {
   try {
     await t.test('loads all nine shared totals, ranks descending, and keeps original ties', async () => {
       reset();
       const { page, errors } = await open();
-      assert.deepEqual(await order(page), ['deadpoint', 'bagbrawl', 'primordial', 'primordial-tactics', 'headsup', 'grove', 'emberwild', 'emberfell', 'pelaglyph']);
+      assert.deepEqual(await order(page), seededRanking);
       assert.equal(await countText(page, 'deadpoint'), '225 plays');
       assert.equal(await countText(page, 'grove'), '0 plays');
       assert.equal(await page.locator('.art svg').count(), 9);
@@ -110,33 +113,111 @@ test('shared play counts keep navigation native, totals truthful, and ranking st
     });
 
     for (const [name, interact] of [
+      ['hovered', page => page.locator('[data-game="primordial"] .art').hover()],
       ['focused', page => page.locator('[data-game="primordial"] a.play').focus()],
-      ['pressed', async page => { const box = await page.locator('[data-game="primordial"] .art').boundingBox(); await page.mouse.move(box.x + 20, box.y + 20); await page.mouse.down(); }],
-    ]) await t.test(`a ${name} card is not moved by a late startup response`, async () => {
+    ]) await t.test(`a late startup response ranks cards after one is ${name}`, async () => {
       reset(); state.holdGet = true;
       const { page, errors } = await open({ waitCounts: false });
       await until(() => state.pendingGet.length === 1, 'Initial count request waits');
       await interact(page);
       state.pendingGet[0]();
-      await page.waitForFunction(() => document.querySelector('[data-game="deadpoint"] [data-play-count]').textContent.includes('225'));
-      assert.deepEqual(await order(page), originalOrder);
-      if (name === 'focused') assert.equal(await page.evaluate(() => document.activeElement.closest('.card').dataset.game), 'primordial');
-      else await page.mouse.up();
+      await waitOrder(page, seededRanking);
+      assert.equal(await countText(page, 'deadpoint'), '225 plays');
+      if (name === 'focused') assert.equal(await page.locator('[data-game="primordial"] a.play').evaluate(element => document.activeElement === element), true);
+      assert.equal(await page.locator('#ranking-title').textContent(), 'Most played');
       assert.deepEqual(errors, []);
       await page.close();
     });
 
-    await t.test('back/forward restoration refreshes numbers without moving restored cards', async () => {
+    for (const gesture of ['pointer', 'Enter']) await t.test(`a held ${gesture} gesture delays ranking only until release and activates the intended link`, async () => {
+      reset(); state.holdGet = true; state.holdPost = true;
+      const { page, errors } = await open({ waitCounts: false });
+      await until(() => state.pendingGet.length === 1, 'Initial count request waits');
+      const link = page.locator('[data-game="primordial"] a.play');
+      await link.evaluate(element => { element.href = '#opened-primordial'; });
+      if (gesture === 'pointer') {
+        await link.scrollIntoViewIfNeeded();
+        const box = await link.boundingBox();
+        await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+        await page.mouse.down();
+      } else {
+        await link.focus();
+        await page.keyboard.down('Enter');
+      }
+      state.pendingGet[0]();
+      await page.waitForFunction(() => document.querySelector('[data-game="deadpoint"] [data-play-count]').textContent.includes('225'));
+      assert.deepEqual(await order(page), originalOrder, 'Cards stay put while the activation gesture is held');
+      if (gesture === 'pointer') await page.mouse.up();
+      else await page.keyboard.up('Enter');
+      await page.waitForURL(`${origin}/#opened-primordial`);
+      await until(() => state.pendingPost.length === 1, 'Exactly one play activation reaches the API');
+      assert.deepEqual(state.requests.filter(request => request.method === 'POST'), [{ method: 'POST', slug: 'primordial', body: '' }]);
+      await waitOrder(page, seededRanking);
+      state.pendingPost[0]();
+      assert.deepEqual(errors, []);
+      await page.close();
+    });
+
+    await t.test('back/forward restoration refreshes totals and ranks the restored cards', async () => {
       reset();
       const { page } = await open();
-      const before = await order(page);
+      await page.locator('[data-game="primordial"] a.play').focus();
       state.counts.pelaglyph = 12345;
       state.counts.grove = 1;
       await page.evaluate(() => window.dispatchEvent(new PageTransitionEvent('pageshow', { persisted: true })));
-      await page.waitForFunction(() => document.querySelector('[data-game="pelaglyph"] [data-play-count]').textContent.includes('12,345'));
+      await waitOrder(page, ['pelaglyph', 'deadpoint', 'bagbrawl', 'primordial', 'grove', 'primordial-tactics', 'headsup', 'emberwild', 'emberfell']);
+      assert.equal(await countText(page, 'pelaglyph'), '12,345 plays');
       assert.equal(await countText(page, 'grove'), '1 play');
-      assert.deepEqual(await order(page), before);
+      assert.equal(await page.locator('[data-game="primordial"] a.play').evaluate(element => document.activeElement === element), true);
       assert.equal(state.requests.filter(request => request.method === 'GET').length, 2);
+      await page.close();
+    });
+
+    await t.test('returning to a visible portal tab refreshes and reranks', async () => {
+      reset();
+      const { page } = await open();
+      await page.locator('[data-game="primordial"] .art').hover();
+      state.counts.emberfell = 226;
+      await page.evaluate(() => {
+        Object.defineProperty(document, 'visibilityState', { configurable: true, get: () => 'hidden' });
+        document.dispatchEvent(new Event('visibilitychange'));
+        Object.defineProperty(document, 'visibilityState', { configurable: true, get: () => 'visible' });
+        document.dispatchEvent(new Event('visibilitychange'));
+      });
+      await waitOrder(page, ['emberfell', 'deadpoint', 'bagbrawl', 'primordial', 'primordial-tactics', 'headsup', 'grove', 'emberwild', 'pelaglyph']);
+      assert.equal(await countText(page, 'emberfell'), '226 plays');
+      assert.equal(state.requests.filter(request => request.method === 'GET').length, 2);
+      await page.close();
+    });
+
+    for (const destination of ['same page', 'new tab']) await t.test(`a ${destination} play POST reranks when its returned total overtakes the leader`, async () => {
+      reset();
+      const { page, errors } = await open();
+      // Other visitors can increase totals between the initial GET and this click.
+      state.counts.primordial = 225;
+      state.holdPost = true;
+      state.holdGet = true; // A focus/visibility refresh cannot mask a missing POST rerank.
+      const link = page.locator('[data-game="primordial"] a.play');
+      let popup;
+      if (destination === 'same page') {
+        await link.evaluate(element => { element.href = '#opened-primordial'; });
+        await link.click();
+        await page.waitForURL(`${origin}/#opened-primordial`);
+      } else {
+        await link.evaluate((element, href) => { element.href = href; element.target = '_blank'; }, `${origin}/opened/primordial`);
+        [popup] = await Promise.all([context.waitForEvent('page'), link.click()]);
+        await popup.waitForURL(`${origin}/opened/primordial`);
+      }
+      await until(() => state.pendingPost.length === 1, 'Play increment waits for its response');
+      assert.deepEqual(await order(page), seededRanking, 'The browser does not invent a total before the response');
+      assert.equal(await countText(page, 'primordial'), '10 plays');
+      state.pendingPost[0]();
+      await waitOrder(page, ['primordial', 'deadpoint', 'bagbrawl', 'primordial-tactics', 'headsup', 'grove', 'emberwild', 'emberfell', 'pelaglyph']);
+      assert.equal(await countText(page, 'primordial'), '226 plays');
+      assert.deepEqual(state.requests.filter(request => request.method === 'POST'), [{ method: 'POST', slug: 'primordial', body: '' }]);
+      assert.deepEqual(errors, []);
+      for (const send of state.pendingGet) send();
+      if (popup) await popup.close();
       await page.close();
     });
 
