@@ -2,11 +2,17 @@
   "name": "brainrotgame-shop",
   "version": "1.0.0",
   "private": true,
-  "description": "The front door for the games at brainrotgame.shop: one static page, served by Caddy on the games' droplet.",
+  "description": "The Gameslop portal with shared play counts, served by Caddy and a small SQLite counter service.",
   "type": "module",
   "scripts": {
-    "serve": "python -m http.server 3011 --bind 127.0.0.1",
+    "serve": "python counter/server.py --port 3011 --site-root .",
+    "test": "python -m unittest discover -s tests -p test_*.py -v",
+    "test:browser": "node --test tests/test-play-counts.mjs",
+    "test:integration": "node tests/test-integration.mjs",
     "deploy": "bash scripts/deploy.sh",
     "provision": "bash ops/provision.sh"
+  },
+  "devDependencies": {
+    "playwright": "1.62.1"
   }
 }

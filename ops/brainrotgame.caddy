@@ -1,0 +1,18 @@
+brainrotgame.shop, gameslop.now {
+  encode gzip
+  handle /api/* {
+    reverse_proxy 127.0.0.1:3012
+  }
+  handle {
+    root * /opt/brainrotgame/site
+    header Cache-Control "no-cache"
+    try_files {path} /index.html
+    file_server
+  }
+}
+www.brainrotgame.shop {
+  redir https://brainrotgame.shop{uri} permanent
+}
+www.gameslop.now {
+  redir https://gameslop.now{uri} permanent
+}

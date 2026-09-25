@@ -1,2 +1,6 @@
 dist-deploy/
 node_modules/
+var/
+__pycache__/
+*.pyc
+test-results/

@@ -23,8 +23,10 @@ if command -v ufw >/dev/null; then for r in 80/tcp 443/tcp 443/udp; do ufw allow
 
 echo "[2/3] web root"
 mkdir -p /opt/brainrotgame/site
-chown -R caddy:caddy /opt/brainrotgame 2>/dev/null || chown -R www-data:www-data /opt/brainrotgame 2>/dev/null || true
-chmod -R a+rX /opt/brainrotgame
+chown root:root /opt/brainrotgame
+chmod 0755 /opt/brainrotgame
+chown -R caddy:caddy /opt/brainrotgame/site 2>/dev/null || chown -R www-data:www-data /opt/brainrotgame/site 2>/dev/null || true
+chmod -R a+rX /opt/brainrotgame/site
 if [[ ! -f /opt/brainrotgame/site/index.html ]]; then
   printf '<!doctype html><meta charset=utf-8><title>%s</title><body style="background:#0d0f14;color:#f2f4f8;font:16px system-ui;display:grid;place-items:center;height:100vh;margin:0">Nothing deployed here yet. Run <code style="margin-left:.4em">npm run deploy</code></body>' "${NAMES[0]}" > /opt/brainrotgame/site/index.html
   chmod a+r /opt/brainrotgame/site/index.html
@@ -37,11 +39,16 @@ BARE=$(IFS=,; echo "${NAMES[*]}" | sed 's/,/, /g')
 {
   echo "$BARE {"
   echo "  encode gzip"
+  echo "  handle /api/* {"
+  echo "    reverse_proxy 127.0.0.1:3012"
+  echo "  }"
+  echo "  handle {"
   echo "  root * /opt/brainrotgame/site"
   echo "  # One page that changes when it changes: never cache it for long."
   echo "  header Cache-Control \"no-cache\""
   echo "  file_server"
   echo "  try_files {path} /index.html"
+  echo "  }"
   echo "}"
   for n in "${NAMES[@]}"; do
     echo "www.$n {"

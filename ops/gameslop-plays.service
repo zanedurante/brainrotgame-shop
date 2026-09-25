@@ -1,0 +1,29 @@
+[Unit]
+Description=Gameslop shared play click counters
+After=network.target
+
+[Service]
+Type=simple
+DynamicUser=yes
+StateDirectory=gameslop-plays
+StateDirectoryMode=0700
+Environment=GAMESLOP_PLAYS_DB=/var/lib/gameslop-plays/plays.sqlite3
+ExecStart=/usr/bin/python3 -I /opt/brainrotgame/counter/server.py --port 3012
+Restart=on-failure
+RestartSec=2
+UMask=0077
+NoNewPrivileges=yes
+PrivateTmp=yes
+PrivateDevices=yes
+ProtectSystem=strict
+ProtectHome=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectControlGroups=yes
+RestrictSUIDSGID=yes
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+MemoryMax=128M
+TasksMax=64
+
+[Install]
+WantedBy=multi-user.target

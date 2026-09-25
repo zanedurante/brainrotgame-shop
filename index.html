@@ -43,6 +43,11 @@
   .play:hover { transform: translateY(-1px); filter: brightness(1.08); }
   .play:active { transform: translateY(0); }
   .play svg { width: 16px; height: 16px; }
+  .ranking-bar { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 6px 20px; padding-top: 18px; }
+  .ranking-bar h2 { margin: 0; color: var(--ink); font-size: 15px; font-weight: 650; letter-spacing: .01em; }
+  .ranking-bar p { margin: 0; color: var(--muted); font-size: 12px; }
+  .card .play-count { display: flex; align-items: baseline; justify-content: center; gap: 5px; min-height: 19px; margin: -2px 0 0; color: var(--muted); font-size: 12px; line-height: 1.6; }
+  .play-count .count-value { color: var(--ink); font-weight: 650; font-variant-numeric: tabular-nums; }
   .note { color: var(--muted); font-size: 14px; }
   .note a { color: var(--ink); }
   footer { border-top: 1px solid var(--line); padding: 26px 0 60px; color: var(--muted); font-size: 14px; display: flex; flex-wrap: wrap; gap: 8px 22px; }
@@ -58,9 +63,45 @@
     <p class="lede">Free games to play in browser <b>(zero downloads or accounts needed)</b>.</p>
   </header>
 
-  <main class="grid">
+  <div class="ranking-bar"><h2 id="ranking-title">All games</h2><p id="ranking-note">Shared play clicks</p></div>
+  <main class="grid" aria-labelledby="ranking-title">
 
-    <article class="card" style="--accent: var(--gold)">
+    <article class="card" data-game="primordial" style="--accent: #8fdcae">
+      <div class="art" aria-hidden="true">
+        <svg viewBox="0 0 300 140" fill="none">
+          <path d="M27 103 50 114l34-5m138-80 31 9 18 25M31 47l11-18 33-8m151 88 23 5 19-14" stroke="#294238" stroke-width="4" stroke-linecap="round"/>
+          <path d="M53 77h32m-25 12h23m-14-24h19" stroke="#588e76" stroke-width="3" stroke-linecap="round"/>
+          <path d="M93 61c13-15 32-18 47-6l17 20-19 21c-16 12-37 7-47-9l-9-13Z" fill="#346e58" stroke="#8fdcae" stroke-width="3"/>
+          <path d="m103 57-5-13m14 55-2 15m26-58 4-12m-2 46 7 11" stroke="#8fdcae" stroke-width="3" stroke-linecap="round"/><circle cx="132" cy="67" r="6" fill="#cef5ca"/><circle cx="134" cy="67" r="2" fill="#183b2d"/>
+          <g fill="#e5d483"><path d="m163 64 18-4-7 8Z"/><path d="m174 75 19-4-7 8Z"/><path d="m163 86 18-4-7 8Z"/></g>
+          <path d="m219 51 5 10 12-2-4 12 8 9-12 4-3 13-9-8-12 5-1-13-11-7 11-8 1-13 10 6Z" fill="#6a3e4b" stroke="#d68794" stroke-width="2"/><circle cx="216" cy="75" r="7" fill="#dfa0a8"/>
+        </svg>
+      </div>
+      <h2><small>Action evolution roguelike</small>Primordial</h2>
+      <p>Dash, fire, and stack mutations across five living biomes. Explore connected chambers, defeat bosses, and shape your tiny lineage into a powerful survivor.</p>
+      <div class="meta"><span>1 player</span><span>Keyboard + mouse</span><span>Touch controls</span></div>
+      <a class="play" href="https://primordial-action.gameslop.now">Play Primordial <svg viewBox="0 0 16 16"><path d="M3 2v12l10-6z" fill="currentColor"/></svg></a>
+      <p class="play-count" data-play-count>Play count unavailable</p>
+    </article>
+
+    <article class="card" data-game="primordial-tactics" style="--accent: #b6a0ed">
+      <div class="art" aria-hidden="true">
+        <svg viewBox="0 0 300 140" fill="none">
+          <path d="M45 104h210M65 104V36h170v68" stroke="#38334d" stroke-width="2" stroke-dasharray="4 6"/>
+          <g fill="#232030" stroke="#746293" stroke-width="2"><path d="m65 26 10 10-10 10-10-10Z"/><path d="m150 26 10 10-10 10-10-10Z"/><path d="m235 26 10 10-10 10-10-10Z"/></g>
+          <path d="M91 63c17-13 35 2 33 20s-12 31-31 25-20-31-2-45Z" fill="#55487a" stroke="#b6a0ed" stroke-width="3"/><circle cx="105" cy="77" r="7" fill="#d8cdf5"/><path d="m86 73-12-5m10 23-13 4m34 8 3 13m15-30 12 2" stroke="#b6a0ed" stroke-width="3" stroke-linecap="round"/>
+          <path d="m205 56 23 15-4 32-23 10-22-14 3-29Z" fill="#462e3f" stroke="#d181a6" stroke-width="3"/><path d="m195 76 5 6m15-6-5 6" stroke="#efbdd0" stroke-width="3" stroke-linecap="round"/>
+          <path d="M140 81h20m-7-7 7 7-7 7" stroke="#e9cf85" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </div>
+      <h2><small>Turn-based evolution roguelike</small>Primordial: Tactics</h2>
+      <p>Read enemy intent, manage your energy, and draft a permanent mutation after each battle. Survive twelve rooms and evolve from a cell into an animal.</p>
+      <div class="meta"><span>1 player</span><span>Turn-based</span><span>Buttons or keys 1–4</span></div>
+      <a class="play" href="https://primordial.gameslop.now">Play Primordial: Tactics <svg viewBox="0 0 16 16"><path d="M3 2v12l10-6z" fill="currentColor"/></svg></a>
+      <p class="play-count" data-play-count>Play count unavailable</p>
+    </article>
+
+    <article class="card" data-game="bagbrawl" style="--accent: var(--gold)">
       <div class="art" aria-hidden="true">
         <svg viewBox="0 0 300 140" fill="none">
           <rect x="0" y="118" width="300" height="6" rx="3" fill="#2a3040"/>
@@ -74,9 +115,10 @@
       <p>Punching bags with personalities, and the last one still on the stage wins. Dash, glide, charge — every fighter has its own kit and its own CPU to practise against.</p>
       <div class="meta"><span>1–4 players</span><span>Online, rollback netcode</span><span>Keyboard + mouse</span></div>
       <a class="play" href="https://bagbrawl.app">Play Bag Brawl <svg viewBox="0 0 16 16"><path d="M3 2v12l10-6z" fill="currentColor"/></svg></a>
+      <p class="play-count" data-play-count>Play count unavailable</p>
     </article>
 
-    <article class="card" style="--accent: var(--brand)">
+    <article class="card" data-game="deadpoint" style="--accent: var(--brand)">
       <div class="art" aria-hidden="true">
         <svg viewBox="0 0 300 140" fill="none">
           <rect x="0" y="100" width="300" height="40" fill="#151a24"/>
@@ -91,9 +133,10 @@
       <p>A co-op zombie roguelike. One town, one squad, one helicopter out — survive twenty rounds, buy guns off the walls, draft upgrades, and don't let anyone bleed out.</p>
       <div class="meta"><span>1–8 players</span><span>Online co-op</span><span>Keyboard + mouse</span></div>
       <a class="play" href="https://deadpoint.bagbrawl.app">Play Deadpoint <svg viewBox="0 0 16 16"><path d="M3 2v12l10-6z" fill="currentColor"/></svg></a>
+      <p class="play-count" data-play-count>Play count unavailable</p>
     </article>
 
-    <article class="card" style="--accent: var(--green)">
+    <article class="card" data-game="headsup" style="--accent: var(--green)">
       <div class="art" aria-hidden="true">
         <svg viewBox="0 0 300 140" fill="none">
           <rect x="112" y="18" width="76" height="118" rx="12" fill="#0b0d12" stroke="#3a4152" stroke-width="3"/>
@@ -109,6 +152,75 @@
       <p>Hold the phone on your forehead; your friends act it out. Tap the left half to skip, the right half when you get it. One phone, any number of friends.</p>
       <div class="meta"><span>Any group</span><span>One phone</span><span>Touch</span></div>
       <a class="play" href="https://headsup.bagbrawl.app">Play Heads Up <svg viewBox="0 0 16 16"><path d="M3 2v12l10-6z" fill="currentColor"/></svg></a>
+      <p class="play-count" data-play-count>Play count unavailable</p>
+    </article>
+
+    <article class="card" data-game="grove" style="--accent: #b9dc83">
+      <div class="art" aria-hidden="true">
+        <svg viewBox="0 0 300 140" fill="none">
+          <rect x="88" y="12" width="124" height="116" rx="12" fill="#172a25" stroke="#3d5a45" stroke-width="2"/>
+          <rect x="98" y="22" width="48" height="46" rx="7" fill="#cfe4a3"/><rect x="154" y="22" width="48" height="46" rx="7" fill="#88b76d"/>
+          <rect x="98" y="76" width="48" height="42" rx="7" fill="#88b76d"/><rect x="154" y="76" width="48" height="42" rx="7" fill="#e8c76d"/>
+          <g fill="#173526" font-family="system-ui, sans-serif" font-size="24" font-weight="800" text-anchor="middle"><text x="122" y="54">2</text><text x="178" y="54">4</text><text x="122" y="106">4</text><text x="178" y="106">8</text></g>
+          <path d="M62 103V62m0 24C41 85 40 66 40 66s21-2 22 20m0-8c0-19 20-21 20-21s0 21-20 21M238 106V80m0 15c19 0 22-19 22-19s-21-1-22 19" stroke="#b9dc83" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </div>
+      <h2><small>Number puzzle</small>Grove</h2>
+      <p>Slide and merge your way to 2048. Earn energy with each merging move, then swap, prune, or grow tiles to make room for your next big number.</p>
+      <div class="meta"><span>1 player</span><span>At your own pace</span><span>Keyboard + touch</span></div>
+      <a class="play" href="https://grove.gameslop.now">Play Grove <svg viewBox="0 0 16 16"><path d="M3 2v12l10-6z" fill="currentColor"/></svg></a>
+      <p class="play-count" data-play-count>Play count unavailable</p>
+    </article>
+
+    <article class="card" data-game="emberwild" style="--accent: #f0af66">
+      <div class="art" aria-hidden="true">
+        <svg viewBox="0 0 300 140" fill="none">
+          <path d="M22 112 51 49l29 63M222 112l29-75 29 75" stroke="#27453c" stroke-width="12" stroke-linejoin="round"/>
+          <g transform="translate(83 29) rotate(-13 31 44)"><rect width="62" height="88" rx="7" fill="#19332d" stroke="#658b68" stroke-width="2"/><path d="M14 56c-1-20 13-33 34-36-1 21-11 35-34 36Z" fill="#8cb475"/><path d="m15 61 26-32" stroke="#c1dba0" stroke-width="2"/><path d="M15 73h32" stroke="#658b68" stroke-width="3" stroke-linecap="round"/></g>
+          <g transform="translate(154 23) rotate(12 31 44)"><rect width="62" height="88" rx="7" fill="#3d2821" stroke="#d28b50" stroke-width="2"/><path d="M31 15c5 13 18 20 18 33a18 18 0 0 1-36 0c0-8 5-15 10-20-1 10 4 12 4 12s7-9 4-25Z" fill="#f0af66"/><path d="M31 43c7 8 9 10 9 15a9 9 0 0 1-18 0c0-5 5-11 9-15Z" fill="#f8d891"/><path d="M15 75h32" stroke="#d28b50" stroke-width="3" stroke-linecap="round"/></g>
+          <path d="m142 17 5-8 5 8-5 8Z" fill="#f8d891"/>
+        </svg>
+      </div>
+      <h2><small>Woodland card battler</small>Emberwild</h2>
+      <p>Take a 24-card deck into a duel with the Hollow Warden. Summon creatures, cast spells, and choose your attacks to outwit an AI guardian of the woods.</p>
+      <div class="meta"><span>1 player</span><span>Vs. AI</span><span>Mouse + touch</span></div>
+      <a class="play" href="https://emberwild.gameslop.now">Play Emberwild <svg viewBox="0 0 16 16"><path d="M3 2v12l10-6z" fill="currentColor"/></svg></a>
+      <p class="play-count" data-play-count>Play count unavailable</p>
+    </article>
+
+    <article class="card" data-game="emberfell" style="--accent: #d6b779">
+      <div class="art" aria-hidden="true">
+        <svg viewBox="0 0 300 140" fill="none">
+          <path d="M30 115h240" stroke="#343d39" stroke-width="5" stroke-linecap="round"/>
+          <path d="M65 32v71m0-71h39l-10 14 10 14H65" stroke="#917b51" stroke-width="3" stroke-linejoin="round" fill="#493c27"/>
+          <path d="M236 26v77m0-77h-39l10 14-10 14h39" stroke="#69877e" stroke-width="3" stroke-linejoin="round" fill="#24423a"/>
+          <g fill="#688d78"><circle cx="95" cy="78" r="12"/><path d="M77 108V96a18 18 0 0 1 36 0v12Z"/><circle cx="205" cy="78" r="12"/><path d="M187 108V96a18 18 0 0 1 36 0v12Z"/></g>
+          <circle cx="150" cy="61" r="16" fill="#d6b779"/><path d="m133 52 3-17 14 10 14-10 3 17" fill="#d6b779"/><path d="M126 110V88a24 24 0 0 1 48 0v22Z" fill="#917b51"/>
+          <path d="m150 79 15 6-3 18-12 8-12-8-3-18Z" fill="#273a33" stroke="#d6b779" stroke-width="2"/><path d="m150 85 5 9-5 9-5-9Z" fill="#d6b779"/>
+        </svg>
+      </div>
+      <h2><small>Fantasy auto-battler</small>Emberfell</h2>
+      <p>Recruit a warband and outlast seven computer commanders. Arrange your allies, build faction bonds, and fuse matching recruits before the next automatic clash.</p>
+      <div class="meta"><span>1 player</span><span>7 AI rivals</span><span>Mouse + touch</span></div>
+      <a class="play" href="https://emberfell.gameslop.now">Play Emberfell <svg viewBox="0 0 16 16"><path d="M3 2v12l10-6z" fill="currentColor"/></svg></a>
+      <p class="play-count" data-play-count>Play count unavailable</p>
+    </article>
+
+    <article class="card" data-game="pelaglyph" style="--accent: #73d4d0">
+      <div class="art" aria-hidden="true">
+        <svg viewBox="0 0 300 140" fill="none">
+          <path d="M0 107c44-24 80 23 127 0s80-24 173-3v36H0Z" fill="#18373b"/><path d="M0 118c45-24 81 23 128 0s79-24 172-3" stroke="#315e61" stroke-width="2"/>
+          <path d="M229 108c-11-14-11-28-2-38m0 18c-17 0-19-14-19-14m17 26c13-3 19-14 16-25" stroke="#73a485" stroke-width="4" stroke-linecap="round"/>
+          <g stroke="#73d4d0" stroke-width="3" stroke-linecap="round"><path d="m91 64-13-9m18 29-16 7m31-42-3-14m35 16 6-12m13 43 13 9"/><path d="M79 71c3-22 27-30 50-20s44 10 46 26-26 30-51 24-48-7-45-30Z" fill="#326d70"/></g>
+          <path d="M98 73c4-10 20-13 34-6s24 5 27 12-14 15-30 10-33-5-31-16Z" fill="#73d4d0"/><circle cx="149" cy="69" r="5" fill="#d5f6e9"/><circle cx="150" cy="69" r="2" fill="#142f35"/>
+          <g fill="#b8dc89"><circle cx="59" cy="38" r="4"/><circle cx="199" cy="48" r="5"/><circle cx="214" cy="34" r="3"/></g><circle cx="69" cy="104" r="4" stroke="#477980" stroke-width="2"/>
+        </svg>
+      </div>
+      <h2><small>Evolution sandbox</small>Pelaglyph</h2>
+      <p>Grow from cellular life into a land explorer, then build a colony. Gather nutrients, shape your adaptations, and recruit friendly creatures through three stages of evolution.</p>
+      <div class="meta"><span>1 player</span><span>Saves in your browser</span><span>Keyboard + touch</span></div>
+      <a class="play" href="https://pelaglyph.gameslop.now">Play Pelaglyph <svg viewBox="0 0 16 16"><path d="M3 2v12l10-6z" fill="currentColor"/></svg></a>
+      <p class="play-count" data-play-count>Play count unavailable</p>
     </article>
 
   </main>
@@ -131,5 +243,6 @@
     document.title = host === 'gameslop.now' ? 'Game Slop' : document.title;
   }
 </script>
+<script src="/assets/play-counts.js" defer></script>
 </body>
 </html>
