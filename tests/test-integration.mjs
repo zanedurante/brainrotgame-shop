@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
-import { spawn } from 'node:child_process';
-import { mkdtemp, rm, mkdir } from 'node:fs/promises';
+import { spawn, spawnSync } from 'node:child_process';
+import { mkdtemp, rm, mkdir, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -10,7 +10,20 @@ catch { playwright = await import('../../../gameslop-games/node_modules/playwrig
 const root = fileURLToPath(new URL('../', import.meta.url));
 const temporary = await mkdtemp(join(tmpdir(), 'gameslop-integration-'));
 const python = process.env.PORTAL_PYTHON || 'python';
-const child = spawn(python, ['counter/server.py', '--db', join(temporary, 'plays.sqlite3'), '--port', '0', '--site-root', '.'], { cwd: root, stdio: ['ignore', 'pipe', 'pipe'] });
+const database = join(temporary, 'plays.sqlite3');
+const updatesFile = join(temporary, 'updates.json');
+const originalOrder = ['primordial', 'primordial-tactics', 'bagbrawl', 'deadpoint', 'headsup', 'grove', 'emberwild', 'emberfell', 'pelaglyph'];
+const expectedPlays = ['deadpoint', 'bagbrawl', 'primordial', 'primordial-tactics', 'headsup', 'grove', 'emberwild', 'emberfell', 'pelaglyph'];
+const expectedUpdated = ['pelaglyph', 'emberwild', 'primordial', 'primordial-tactics', 'bagbrawl', 'deadpoint', 'headsup', 'grove', 'emberfell'];
+const expectedTrending = ['primordial', 'bagbrawl', 'deadpoint', 'primordial-tactics', 'headsup', 'grove', 'emberwild', 'emberfell', 'pelaglyph'];
+await writeFile(updatesFile, JSON.stringify({ lastUpdated: { ...Object.fromEntries(originalOrder.map(slug => [slug, null])), pelaglyph: '2026-09-26T09:00:00Z', emberwild: '2026-09-25T09:00:00Z', primordial: '2026-09-24T09:00:00Z', 'primordial-tactics': '2026-09-24T09:00:00Z' } }));
+function fixture(code) {
+  const result = spawnSync(python, ['-c', `import sys, time, sqlite3\nfrom counter.server import PlayStore\nstore = PlayStore(sys.argv[1])\nconnection = store.connect()\nnow = int(time.time() * 1000)\n${code}\nconnection.close()`, database], { cwd: root, encoding: 'utf8' });
+  if (result.error) throw result.error;
+  assert.equal(result.status, 0, result.stderr);
+}
+fixture("connection.executemany('INSERT INTO play_events (slug, played_at_ms) VALUES (?, ?)', [('primordial', now - 1000)] * 8 + [('bagbrawl', now - 1000)] * 2 + [('deadpoint', now - 1000)] + [('deadpoint', now - 7 * 86400000 - 10000)] * 40)");
+const child = spawn(python, ['counter/server.py', '--db', database, '--port', '0', '--site-root', '.', '--updates-file', updatesFile], { cwd: root, stdio: ['ignore', 'pipe', 'pipe'] });
 let browser;
 let diagnostic = '';
 child.stderr.on('data', chunk => { diagnostic += chunk; });
@@ -32,14 +45,37 @@ try {
   page.on('pageerror', error => errors.push(error.message));
   await page.goto(origin);
   await page.waitForFunction(() => document.querySelector('.card').dataset.game === 'deadpoint');
-  assert.deepEqual(await page.locator('.card').evaluateAll(cards => cards.slice(0, 3).map(card => card.dataset.game)), ['deadpoint', 'bagbrawl', 'primordial']);
+  const order = () => page.locator('.card').evaluateAll(cards => cards.map(card => card.dataset.game));
+  assert.deepEqual(await order(), expectedPlays);
   assert.match(await page.locator('[data-game="deadpoint"] [data-play-count]').textContent(), /225\s*plays/);
   const screenshots = join(root, 'test-results');
   await mkdir(screenshots, { recursive: true });
   await page.screenshot({ path: join(screenshots, 'desktop.png'), fullPage: true });
-  await page.setViewportSize({ width: 390, height: 844 });
-  assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
+  await page.locator('#sort-order').selectOption('updated');
+  assert.deepEqual(await order(), expectedUpdated);
+  assert.equal(await page.locator('[data-game="pelaglyph"] .count-detail').textContent(), 'Updated Sep 26, 2026');
+  assert.equal(await page.locator('[data-game="grove"] .count-detail').textContent(), 'Update date unavailable');
+  await page.screenshot({ path: join(screenshots, 'desktop-updated.png'), fullPage: true });
+  await page.locator('#sort-order').selectOption('trending');
+  assert.deepEqual(await order(), expectedTrending);
+  assert.equal(await page.locator('[data-game="deadpoint"] .count-value').textContent(), '225');
+  assert.equal(await page.locator('[data-game="deadpoint"] .count-detail').textContent(), '1 in the last 7 days', 'Expired real events are excluded from the weekly window');
+  assert.match(await page.locator('#ranking-note').textContent(), /Weekly tracking started/);
+  await page.screenshot({ path: join(screenshots, 'desktop-trending.png'), fullPage: true });
+  fixture("connection.execute('UPDATE play_events SET played_at_ms = ? WHERE slug = ?', (now - 7 * 86400000 - 10000, 'primordial'))");
+  await page.evaluate(() => window.dispatchEvent(new PageTransitionEvent('pageshow', { persisted: true })));
+  await page.waitForFunction(() => document.querySelector('[data-game="primordial"] .count-detail').textContent === '0 in the last 7 days');
+  assert.deepEqual(await order(), ['bagbrawl', 'deadpoint', ...originalOrder.filter(slug => !['bagbrawl', 'deadpoint'].includes(slug))]);
+  assert.equal(await page.locator('[data-game="primordial"] .count-value').textContent(), '10', 'Lifetime count survives weekly expiry');
+  for (const width of [390, 320]) {
+    await page.setViewportSize({ width, height: 844 });
+    for (const sort of ['plays', 'updated', 'trending']) {
+      await page.locator('#sort-order').selectOption(sort);
+      assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true, `${sort} fits ${width}px`);
+    }
+  }
   await page.screenshot({ path: join(screenshots, 'mobile.png'), fullPage: true });
+  await page.locator('#sort-order').selectOption('plays');
   const posted = page.waitForRequest(request => request.method() === 'POST' && request.url() === `${origin}/api/plays/grove`);
   await page.locator('[data-game="grove"] .play').click();
   assert.equal((await posted).headers().origin, origin);
@@ -53,7 +89,7 @@ try {
   assert.equal(ranking[3], 'grove');
   assert.deepEqual(errors, []);
   await secondVisitor.close();
-  console.log('PASS real API: seeds, shared totals, native navigation, click persistence, reranking, desktop/mobile layout.');
+  console.log('PASS real API: three metric-based sorts, stable ties, unknown dates, lifetime totals, weekly expiry, native navigation, persistence, desktop/mobile layout.');
 } finally {
   if (browser) await browser.close();
   const stopped = new Promise(resolve => child.once('exit', resolve));

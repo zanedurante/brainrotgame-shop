@@ -12,10 +12,18 @@ catch { playwright = await import('../../../gameslop-games/node_modules/playwrig
 const originalOrder = ['primordial', 'primordial-tactics', 'bagbrawl', 'deadpoint', 'headsup', 'grove', 'emberwild', 'emberfell', 'pelaglyph'];
 const seededRanking = ['deadpoint', 'bagbrawl', 'primordial', 'primordial-tactics', 'headsup', 'grove', 'emberwild', 'emberfell', 'pelaglyph'];
 const seeds = () => ({ primordial: 10, 'primordial-tactics': 0, bagbrawl: 30, deadpoint: 225, headsup: 0, grove: 0, emberwild: 0, emberfell: 0, pelaglyph: 0 });
+const epoch = Date.parse('2026-09-26T12:00:00Z');
+const day = 24 * 60 * 60 * 1000;
+const map = value => Object.fromEntries(originalOrder.map(slug => [slug, value]));
+const weeklySeeds = () => ({ ...map(0), primordial: 8, bagbrawl: 2, deadpoint: 1 });
+const updateSeeds = () => ({ ...map(null), pelaglyph: '2026-09-26T09:00:00Z', emberwild: '2026-09-25T09:00:00Z', primordial: '2026-09-24T09:00:00Z', 'primordial-tactics': '2026-09-24T09:00:00Z' });
+const updatedRanking = ['pelaglyph', 'emberwild', 'primordial', 'primordial-tactics', 'bagbrawl', 'deadpoint', 'headsup', 'grove', 'emberfell'];
+const trendingRanking = ['primordial', 'bagbrawl', 'deadpoint', 'primordial-tactics', 'headsup', 'grove', 'emberwild', 'emberfell', 'pelaglyph'];
 const html = await readFile(new URL('../index.html', import.meta.url));
 const script = await readFile(new URL('../assets/play-counts.js', import.meta.url));
 let state;
-const reset = () => { state = { counts: seeds(), requests: [], getStatus: 200, postStatus: 200, holdGet: false, holdPost: false, pendingGet: [], pendingPost: [] }; };
+const reset = () => { state = { counts: seeds(), weeklyCounts: weeklySeeds(), lastUpdated: updateSeeds(), weeklyTrackingStartedAt: new Date(epoch - 2 * day).toISOString(), asOf: epoch, legacy: false, requests: [], getStatus: 200, postStatus: 200, holdGet: false, holdPost: false, pendingGet: [], pendingPost: [] }; };
+const snapshot = state => JSON.parse(JSON.stringify(state.legacy ? { counts: state.counts } : { counts: state.counts, weeklyCounts: state.weeklyCounts, lastUpdated: state.lastUpdated, weeklyTrackingStartedAt: state.weeklyTrackingStartedAt, asOf: ++state.asOf }));
 reset();
 
 const server = createServer(async (request, response) => {
@@ -26,7 +34,8 @@ const server = createServer(async (request, response) => {
   const game = /^\/api\/plays\/([a-z-]+)$/.exec(request.url ?? '');
   if (request.url === '/api/plays' && request.method === 'GET') {
     requestState.requests.push({ method: 'GET' });
-    const send = () => { response.writeHead(requestState.getStatus, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' }); response.end(JSON.stringify({ counts: requestState.counts })); };
+    const payload = snapshot(requestState);
+    const send = () => { response.writeHead(requestState.getStatus, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' }); response.end(JSON.stringify(payload)); };
     if (requestState.holdGet) requestState.pendingGet.push(send); else send();
     return;
   }
@@ -34,8 +43,9 @@ const server = createServer(async (request, response) => {
     let body = '';
     for await (const chunk of request) body += chunk;
     requestState.requests.push({ method: 'POST', slug: game[1], body });
-    if (requestState.postStatus === 200) requestState.counts[game[1]] += 1;
-    const send = () => { response.writeHead(requestState.postStatus, { 'Content-Type': 'application/json' }); response.end(JSON.stringify({ counts: requestState.counts })); };
+    if (requestState.postStatus === 200) { requestState.counts[game[1]] += 1; if (requestState.weeklyCounts) requestState.weeklyCounts[game[1]] += 1; }
+    const payload = snapshot(requestState);
+    const send = () => { response.writeHead(requestState.postStatus, { 'Content-Type': 'application/json' }); response.end(JSON.stringify(payload)); };
     if (requestState.holdPost) requestState.pendingPost.push(send); else send();
     return;
   }
@@ -53,8 +63,9 @@ async function until(predicate, message) {
   while (!predicate() && Date.now() < deadline) await delay(20);
   assert.ok(predicate(), message);
 }
-async function open({ waitCounts = true } = {}) {
+async function open({ waitCounts = true, clock = false } = {}) {
   const page = await context.newPage();
+  if (clock) await page.clock.install({ time: epoch });
   const errors = [];
   page.on('pageerror', error => errors.push(error.message));
   await page.goto(origin);
@@ -76,8 +87,140 @@ test('shared play counts keep navigation native, totals truthful, and ranking cu
       assert.equal(await countText(page, 'grove'), '0 plays');
       assert.equal(await page.locator('.art svg').count(), 9);
       assert.equal(await page.locator('[data-game="primordial"] a.play').getAttribute('href'), 'https://primordial-action.gameslop.now');
-      assert.equal(await page.locator('#ranking-note').textContent(), 'Ranked by shared play clicks');
+      assert.equal(await page.locator('#ranking-note').textContent(), '');
+      assert.equal(await page.getByRole('combobox', { name: 'Sort games' }).inputValue(), 'plays');
+      assert.deepEqual(await page.locator('#sort-order option').allTextContents(), ['Sort by number of plays', 'Sort by newest update', 'Trending']);
       assert.deepEqual(errors, []);
+      await page.close();
+    });
+
+    await t.test('all three sorts use their real metrics, keep stable ties, and show lifetime plays', async () => {
+      reset();
+      const { page, errors } = await open();
+      const select = page.getByRole('combobox', { name: 'Sort games' });
+      await select.selectOption('updated');
+      assert.deepEqual(await order(page), updatedRanking);
+      assert.equal(await page.locator('#ranking-title').textContent(), 'Recently updated');
+      assert.equal(await page.locator('[data-game="pelaglyph"] .count-detail').textContent(), 'Updated Sep 26, 2026');
+      assert.equal(await page.locator('[data-game="grove"] .count-detail').textContent(), 'Update date unavailable');
+      await select.selectOption('trending');
+      assert.deepEqual(await order(page), trendingRanking);
+      assert.equal(await page.locator('#ranking-title').textContent(), 'Trending');
+      assert.match(await page.locator('#ranking-note').textContent(), /Weekly tracking started Sep 24, 2026; earlier clicks aren’t included/);
+      assert.equal(await page.locator('[data-game="deadpoint"] .count-value').textContent(), '225');
+      assert.equal(await page.locator('[data-game="deadpoint"] .count-detail').textContent(), '1 in the last 7 days');
+      await select.selectOption('plays');
+      assert.deepEqual(await order(page), seededRanking);
+      assert.equal(await page.locator('.count-detail').count(), 0);
+      assert.equal(state.requests.filter(request => request.method === 'POST').length, 0);
+      assert.deepEqual(errors, []);
+      await page.close();
+    });
+
+    await t.test('sort preference survives reload in its tab while a fresh tab defaults to plays', async () => {
+      reset();
+      const { page } = await open();
+      await page.locator('#sort-order').selectOption('updated');
+      await page.reload();
+      await waitOrder(page, updatedRanking);
+      assert.equal(await page.locator('#sort-order').inputValue(), 'updated');
+      const { page: fresh } = await open();
+      assert.equal(await fresh.locator('#sort-order').inputValue(), 'plays');
+      assert.deepEqual(await order(fresh), seededRanking);
+      await fresh.close();
+      await page.close();
+    });
+
+    await t.test('weekly totals decrease on newer snapshots and the first-week note expires', async () => {
+      reset();
+      const { page } = await open();
+      await page.locator('#sort-order').selectOption('trending');
+      state.weeklyCounts.primordial = 0;
+      state.weeklyCounts.bagbrawl = 1;
+      state.weeklyCounts.deadpoint = 0;
+      state.asOf += 8 * day;
+      await page.evaluate(() => window.dispatchEvent(new PageTransitionEvent('pageshow', { persisted: true })));
+      await waitOrder(page, ['bagbrawl', 'primordial', 'primordial-tactics', 'deadpoint', 'headsup', 'grove', 'emberwild', 'emberfell', 'pelaglyph']);
+      assert.equal(await page.locator('[data-game="primordial"] .count-detail').textContent(), '0 in the last 7 days');
+      assert.equal(await page.locator('[data-game="primordial"] .count-value').textContent(), '10');
+      assert.equal(await page.locator('#ranking-note').textContent(), 'Play clicks in the last 7 days.');
+      await page.close();
+    });
+
+    for (const pending of ['GET', 'POST']) await t.test(`a stale ${pending} snapshot cannot undo newer weekly totals or dates`, async () => {
+      reset();
+      const { page } = await open();
+      await page.locator('#sort-order').selectOption('trending');
+      if (pending === 'GET') {
+        state.holdGet = true;
+        await page.evaluate(() => window.dispatchEvent(new PageTransitionEvent('pageshow', { persisted: true })));
+        await until(() => state.pendingGet.length === 1, 'Old GET is held');
+        state.holdGet = false;
+      } else {
+        state.holdPost = true;
+        const link = page.locator('[data-game="primordial"] .play');
+        await link.evaluate(element => { element.href = '#recorded'; });
+        await link.click();
+        await until(() => state.pendingPost.length === 1, 'Old POST is held');
+      }
+      state.weeklyCounts = { ...map(0), bagbrawl: 1 };
+      state.lastUpdated = { ...map(null), grove: '2026-09-27T00:00:00Z' };
+      await page.evaluate(() => window.dispatchEvent(new PageTransitionEvent('pageshow', { persisted: true })));
+      const expected = ['bagbrawl', 'primordial', 'primordial-tactics', 'deadpoint', 'headsup', 'grove', 'emberwild', 'emberfell', 'pelaglyph'];
+      await waitOrder(page, expected);
+      const olderResponse = page.waitForResponse(response => response.request().method() === pending && response.url().includes('/api/plays'));
+      (pending === 'GET' ? state.pendingGet : state.pendingPost)[0]();
+      await olderResponse;
+      await delay(75);
+      assert.deepEqual(await order(page), expected);
+      assert.equal(await page.locator('[data-game="primordial"] .count-detail').textContent(), '0 in the last 7 days');
+      await page.locator('#sort-order').selectOption('updated');
+      assert.equal((await order(page))[0], 'grove');
+      await page.close();
+    });
+
+    await t.test('the visible timer refreshes weekly rankings and stops while hidden', async () => {
+      reset();
+      const { page } = await open({ clock: true });
+      await page.locator('#sort-order').selectOption('trending');
+      state.weeklyCounts = { ...map(0), deadpoint: 1 };
+      await page.clock.runFor(60010);
+      await waitOrder(page, seededRanking.slice(0, 1).concat(originalOrder.filter(slug => slug !== 'deadpoint')));
+      assert.equal(state.requests.filter(request => request.method === 'GET').length, 2);
+      await page.evaluate(() => {
+        Object.defineProperty(document, 'visibilityState', { configurable: true, get: () => 'hidden' });
+        document.dispatchEvent(new Event('visibilitychange'));
+      });
+      await page.clock.runFor(120000);
+      assert.equal(state.requests.filter(request => request.method === 'GET').length, 2);
+      await page.close();
+    });
+
+    for (const unavailable of ['legacy', 'malformed weekly']) await t.test(`${unavailable} metrics fall back clearly without invented weekly zeros or update dates`, async () => {
+      reset();
+      if (unavailable === 'legacy') state.legacy = true;
+      else { state.weeklyCounts.grove = -1; state.lastUpdated = map(null); }
+      const { page } = await open();
+      await page.locator('#sort-order').selectOption('trending');
+      assert.deepEqual(await order(page), seededRanking);
+      assert.equal(await page.locator('[data-game="grove"] .count-detail').textContent(), 'Weekly plays unavailable');
+      assert.match(await page.locator('#ranking-note').textContent(), /Weekly plays unavailable/);
+      await page.locator('#sort-order').selectOption('updated');
+      assert.deepEqual(await order(page), seededRanking);
+      assert.equal(await page.locator('[data-game="grove"] .count-detail').textContent(), 'Update date unavailable');
+      assert.match(await page.locator('#ranking-note').textContent(), /Update dates unavailable/);
+      await page.close();
+    });
+
+    await t.test('a failed refresh retains known metrics and clearly labels the stale snapshot', async () => {
+      reset();
+      const { page } = await open();
+      await page.locator('#sort-order').selectOption('trending');
+      state.getStatus = 503;
+      await page.evaluate(() => window.dispatchEvent(new PageTransitionEvent('pageshow', { persisted: true })));
+      await page.waitForFunction(() => document.getElementById('ranking-note').textContent.includes('Couldn’t refresh'));
+      assert.deepEqual(await order(page), trendingRanking);
+      assert.equal(await page.locator('[data-game="primordial"] .count-detail').textContent(), '8 in the last 7 days');
       await page.close();
     });
 
@@ -144,8 +287,10 @@ test('shared play counts keep navigation native, totals truthful, and ranking cu
         await link.focus();
         await page.keyboard.down('Enter');
       }
+      const response = page.waitForResponse(response => response.url() === `${origin}/api/plays`);
       state.pendingGet[0]();
-      await page.waitForFunction(() => document.querySelector('[data-game="deadpoint"] [data-play-count]').textContent.includes('225'));
+      await (await response).finished();
+      await page.evaluate(() => new Promise(requestAnimationFrame));
       assert.deepEqual(await order(page), originalOrder, 'Cards stay put while the activation gesture is held');
       if (gesture === 'pointer') await page.mouse.up();
       else await page.keyboard.up('Enter');
@@ -245,14 +390,19 @@ test('shared play counts keep navigation native, totals truthful, and ranking cu
     await t.test('counts sit below play links and fit a narrow phone viewport', async () => {
       reset();
       const { page } = await open();
-      await page.setViewportSize({ width: 390, height: 844 });
-      assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), 'No horizontal overflow');
-      for (const slug of originalOrder) {
-        const card = page.locator(`[data-game="${slug}"]`);
-        const linkBox = await card.locator('a.play').boundingBox();
-        const countBox = await card.locator('[data-play-count]').boundingBox();
-        assert.ok(countBox.y > linkBox.y + linkBox.height, `${slug} count is below its play button`);
-        assert.ok(countBox.width <= 354, `${slug} count fits inside its card`);
+      for (const width of [390, 320]) {
+        await page.setViewportSize({ width, height: 844 });
+        for (const sort of ['plays', 'updated', 'trending']) {
+          await page.locator('#sort-order').selectOption(sort);
+          assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), `No horizontal overflow at ${width}px in ${sort}`);
+          for (const slug of originalOrder) {
+            const card = page.locator(`[data-game="${slug}"]`);
+            const linkBox = await card.locator('a.play').boundingBox();
+            const countBox = await card.locator('[data-play-count]').boundingBox();
+            assert.ok(countBox.y > linkBox.y + linkBox.height, `${slug} count is below its play button`);
+            assert.ok(countBox.width < width - 32, `${slug} count fits inside its card`);
+          }
+        }
       }
       await page.close();
     });

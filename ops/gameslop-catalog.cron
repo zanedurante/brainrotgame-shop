@@ -1,0 +1,4 @@
+# Refresh per-game content dates; unchanged games retain their previous date.
+SHELL=/bin/sh
+PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+*/5 * * * * root /usr/bin/python3 -I /opt/brainrotgame/counter/release_dates.py --output /var/lib/gameslop-catalog/updates.json >> /var/log/gameslop-catalog.log 2>&1

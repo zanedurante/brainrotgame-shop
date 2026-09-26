@@ -31,6 +31,9 @@ with sqlite3.connect('/var/lib/gameslop-plays/plays.sqlite3') as source, sqlite3
 PY
 fi
 rollback() {
+  status=$?
+  trap - ERR
+  set +e
   echo "Deployment failed; restoring portal from $backup" >&2
   cp -a "$backup/site/." /opt/brainrotgame/site/
   cp -a "$backup/brainrotgame.caddy" /etc/caddy/brainrotgame.caddy
@@ -51,6 +54,7 @@ rollback() {
   fi
   caddy validate --config /etc/caddy/Caddyfile --adapter caddyfile && systemctl reload caddy || true
   # Keep the counter database intact, including clicks received during the attempt.
+  exit "$status"
 }
 trap rollback ERR
 chown root:root /opt/brainrotgame
@@ -63,9 +67,23 @@ systemctl daemon-reload
 systemctl enable gameslop-plays >/dev/null
 systemctl restart gameslop-plays
 curl --fail --silent --show-error --connect-timeout 5 --max-time 15 --retry 10 --retry-connrefused --retry-delay 1 http://127.0.0.1:3012/api/plays > "$backup/initial-counts.json"
-install -m 0644 "$stage/ops/brainrotgame.caddy" /etc/caddy/brainrotgame.caddy
-caddy validate --config /etc/caddy/Caddyfile --adapter caddyfile
-systemctl reload caddy
+python3 - "$backup/initial-counts.json" <<'PY'
+import json, sys
+slugs = {'primordial', 'primordial-tactics', 'bagbrawl', 'deadpoint', 'headsup', 'grove', 'emberwild', 'emberfell', 'pelaglyph'}
+with open(sys.argv[1]) as handle:
+    snapshot = json.load(handle)
+for field in ('counts', 'weeklyCounts'):
+    assert set(snapshot[field]) == slugs, 'Missing game metrics'
+    assert all(type(value) is int and value >= 0 for value in snapshot[field].values()), 'Invalid count'
+assert set(snapshot['lastUpdated']) == slugs, 'Missing update dates'
+assert isinstance(snapshot['weeklyTrackingStartedAt'], str), 'Missing tracking start'
+assert type(snapshot['asOf']) is int and snapshot['asOf'] > 0, 'Missing snapshot timestamp'
+PY
+if ! cmp -s "$stage/ops/brainrotgame.caddy" /etc/caddy/brainrotgame.caddy; then
+  install -m 0644 "$stage/ops/brainrotgame.caddy" /etc/caddy/brainrotgame.caddy
+  caddy validate --config /etc/caddy/Caddyfile --adapter caddyfile
+  systemctl reload caddy
+fi
 install -d -o caddy -g caddy -m 0755 /opt/brainrotgame/site/assets
 install -o caddy -g caddy -m 0644 "$stage/assets/play-counts.js" /opt/brainrotgame/site/assets/play-counts.js.next
 mv -f /opt/brainrotgame/site/assets/play-counts.js.next /opt/brainrotgame/site/assets/play-counts.js

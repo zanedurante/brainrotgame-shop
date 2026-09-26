@@ -3,6 +3,7 @@
 
 import argparse
 from contextlib import closing
+from datetime import datetime, timezone
 import json
 import mimetypes
 import os
@@ -10,6 +11,7 @@ from pathlib import Path
 import re
 import sqlite3
 import sys
+import time
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import unquote, urlsplit
 
@@ -26,6 +28,43 @@ STATIC_EXTENSIONS = frozenset((
     ".avif", ".gif", ".ico", ".woff", ".woff2", ".ttf", ".otf",
 ))
 MAX_BODY = 4096
+WEEK_MS = 7 * 24 * 60 * 60 * 1000
+RETENTION_MS = 8 * 24 * 60 * 60 * 1000
+MAX_SAFE_INTEGER = (1 << 53) - 1
+MAX_UPDATES_BYTES = 64 * 1024
+
+
+def utc_timestamp(milliseconds):
+    return datetime.fromtimestamp(milliseconds / 1000, timezone.utc).isoformat(timespec="milliseconds").replace("+00:00", "Z")
+
+
+def last_updated(path):
+    """Read one bounded collector snapshot; unavailable metadata never hides counts."""
+    dates = {slug: None for slug in SLUGS}
+    if path is None:
+        return dates
+    try:
+        with Path(path).open("rb") as handle:
+            raw = handle.read(MAX_UPDATES_BYTES + 1)
+        if len(raw) > MAX_UPDATES_BYTES:
+            return dates
+        document = json.loads(raw)
+        values = document.get("lastUpdated") if isinstance(document, dict) else None
+        if not isinstance(values, dict):
+            return dates
+        for slug in SLUGS:
+            value = values.get(slug)
+            if not isinstance(value, str) or re.fullmatch(
+                    r"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{1,6})?(?:Z|[+-]\d{2}:\d{2})", value) is None:
+                continue
+            try:
+                parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))
+                dates[slug] = parsed.astimezone(timezone.utc).isoformat().replace("+00:00", "Z")
+            except (ValueError, OverflowError):
+                continue
+    except (OSError, UnicodeDecodeError, ValueError, RecursionError):
+        pass
+    return dates
 
 
 def allowed_origin(origin):
@@ -49,8 +88,9 @@ def allowed_origin(origin):
 
 
 class PlayStore:
-    def __init__(self, path):
+    def __init__(self, path, clock_ms=None):
         self.path = Path(path).expanduser().resolve()
+        self.clock_ms = clock_ms or (lambda: time.time_ns() // 1_000_000)
         self.path.parent.mkdir(parents=True, exist_ok=True)
         with closing(self.connect()) as connection:
             connection.execute("PRAGMA journal_mode=WAL")
@@ -60,7 +100,21 @@ class PlayStore:
                 "INSERT OR IGNORE INTO plays (slug, count) VALUES (?, ?)",
                 INITIAL_COUNTS.items(),
             )
+            # Historical totals do not tell us when clicks happened. Only new
+            # accepted POSTs create events; seed values never enter this table.
+            connection.execute("CREATE TABLE IF NOT EXISTS play_events (slug TEXT NOT NULL, played_at_ms INTEGER NOT NULL CHECK(played_at_ms >= 0))")
+            connection.execute("CREATE INDEX IF NOT EXISTS play_events_time ON play_events (played_at_ms, slug)")
+            connection.execute("CREATE TABLE IF NOT EXISTS play_tracking (singleton INTEGER PRIMARY KEY CHECK(singleton = 1), started_at_ms INTEGER NOT NULL, last_snapshot_at_ms INTEGER NOT NULL)")
+            now = self.now_ms()
+            connection.execute("INSERT OR IGNORE INTO play_tracking (singleton, started_at_ms, last_snapshot_at_ms) VALUES (1, ?, ?)", (now, now - 1))
+            connection.execute("DELETE FROM play_events WHERE played_at_ms <= ?", (now - RETENTION_MS,))
             connection.commit()
+
+    def now_ms(self):
+        value = self.clock_ms()
+        if type(value) is not int or not 0 <= value < MAX_SAFE_INTEGER:
+            raise ValueError("Clock must return safe integer Unix epoch milliseconds")
+        return value
 
     def connect(self):
         connection = sqlite3.connect(self.path, timeout=10, isolation_level=None)
@@ -80,24 +134,62 @@ class PlayStore:
     def increment(self, slug):
         if slug not in SLUGS:
             raise KeyError(slug)
-        with closing(self.connect()) as connection:
-            connection.execute("BEGIN IMMEDIATE")
-            connection.execute("UPDATE plays SET count = count + 1 WHERE slug = ?", (slug,))
-            counts = self.snapshot(connection)
-            connection.commit()
-            return counts
+        return self.metrics(slug)["counts"]
 
+    def metrics(self, increment_slug=None):
+        """Return one ordered snapshot, optionally recording a click atomically.
+
+        The snapshot clock is persisted and strictly increases, including for
+        reads in the same millisecond or across a restart. It orders responses;
+        rolling-window boundaries always use the actual wall-clock time.
+        """
+        if increment_slug is not None and increment_slug not in SLUGS:
+            raise KeyError(increment_slug)
+        with closing(self.connect()) as connection:
+            # A short write transaction orders reads with increments, preventing
+            # an old count snapshot from receiving a newer response timestamp.
+            connection.execute("BEGIN IMMEDIATE")
+            now = self.now_ms()
+            started_at, previous_as_of = connection.execute(
+                "SELECT started_at_ms, last_snapshot_at_ms FROM play_tracking WHERE singleton = 1"
+            ).fetchone()
+            as_of = max(now, previous_as_of + 1)
+            if as_of > MAX_SAFE_INTEGER:
+                raise sqlite3.IntegrityError("Snapshot clock exceeds safe integer range")
+            if increment_slug is not None:
+                connection.execute("UPDATE plays SET count = count + 1 WHERE slug = ?", (increment_slug,))
+                connection.execute("INSERT INTO play_events (slug, played_at_ms) VALUES (?, ?)", (increment_slug, now))
+                connection.execute("DELETE FROM play_events WHERE played_at_ms <= ?", (now - RETENTION_MS,))
+            weekly_rows = dict(connection.execute(
+                "SELECT slug, COUNT(*) FROM play_events WHERE played_at_ms > ? AND played_at_ms <= ? GROUP BY slug",
+                (now - WEEK_MS, now),
+            ))
+            payload = {
+                "counts": self.snapshot(connection),
+                "weeklyCounts": {slug: weekly_rows.get(slug, 0) for slug in SLUGS},
+                "weeklyTrackingStartedAt": utc_timestamp(started_at),
+                "asOf": as_of,
+            }
+            connection.execute("UPDATE play_tracking SET last_snapshot_at_ms = ? WHERE singleton = 1", (as_of,))
+            connection.commit()
+            return payload
 
 class CounterServer(ThreadingHTTPServer):
     daemon_threads = True
     allow_reuse_address = True
 
-    def __init__(self, address, store, site_root=None):
+    def __init__(self, address, store, site_root=None, updates_file=None):
         self.store = store
         self.site_root = Path(site_root).expanduser().resolve() if site_root else None
+        self.updates_file = Path(updates_file).expanduser().resolve() if updates_file else None
         if self.site_root is not None and not (self.site_root / "index.html").is_file():
             raise ValueError("--site-root must contain index.html")
         super().__init__(address, CounterHandler)
+
+    def play_metrics(self, increment_slug=None):
+        payload = self.store.metrics(increment_slug)
+        payload["lastUpdated"] = last_updated(self.updates_file)
+        return payload
 
     def handle_error(self, request, client_address):
         # Neither client addresses nor request headers are recorded.
@@ -201,7 +293,7 @@ class CounterHandler(BaseHTTPRequestHandler):
             self.json_response(200, {"ok": True})
         elif path == "/api/plays":
             try:
-                self.json_response(200, {"counts": self.server.store.counts()})
+                self.json_response(200, self.server.play_metrics())
             except sqlite3.Error:
                 self.reject(503, "Counts are temporarily unavailable", {"Retry-After": "1"})
         else:
@@ -226,7 +318,7 @@ class CounterHandler(BaseHTTPRequestHandler):
             self.reject(404, "Unknown game")
             return
         try:
-            self.json_response(200, {"counts": self.server.store.increment(slug)})
+            self.json_response(200, self.server.play_metrics(slug))
         except sqlite3.Error:
             self.reject(503, "Counts are temporarily unavailable", {"Retry-After": "1"})
 
@@ -301,12 +393,14 @@ def main(argv=None):
     parser.add_argument("--port", type=int, default=os.environ.get("GAMESLOP_PLAYS_PORT", "3012"))
     parser.add_argument("--db", default=os.environ.get("GAMESLOP_PLAYS_DB", "var/plays.sqlite3"))
     parser.add_argument("--site-root", help="Optionally serve index.html and assets/ from this directory")
+    parser.add_argument("--updates-file", default=os.environ.get("GAMESLOP_UPDATES_FILE"),
+                        help="Read game update dates from the catalog collector JSON file")
     args = parser.parse_args(argv)
     if not 0 <= args.port <= 65535:
         parser.error("--port must be between 0 and 65535")
     try:
         store = PlayStore(args.db)
-        server = CounterServer((args.host, args.port), store, args.site_root)
+        server = CounterServer((args.host, args.port), store, args.site_root, args.updates_file)
     except (OSError, sqlite3.Error, ValueError) as error:
         parser.exit(1, f"Counter could not start: {error}\n")
     print(f"Listening on http://127.0.0.1:{server.server_port}", flush=True)
