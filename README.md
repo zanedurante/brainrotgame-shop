@@ -1,8 +1,9 @@
 # brainrotgame.shop · gameslop.now
 
 The front door for nine games, answering on two domains. Each card shows the shared total of Play
-button clicks, and the catalog ranks games by that total. The header and title say whichever name
-the visitor typed; both domains use the same counters.
+button clicks. The sort menu defaults to **Sort by number of plays**, with **Sort by newest update**
+and **Trending** (play clicks in the last seven days) also available. The header and title say
+whichever name the visitor typed; both domains use the same counters.
 
 - **Bag Brawl** — https://bagbrawl.app
 - **Deadpoint** — https://deadpoint.bagbrawl.app
@@ -33,21 +34,46 @@ Both need SSH to the droplet as root with the owner's key; the address is in `op
 
 ## Shared play counts
 
-`GET /api/plays` returns `{ "counts": { "deadpoint": 225, ... } }` for all nine fixed game IDs.
-`POST /api/plays/<game-id>` with an empty body adds one and returns the updated snapshot. The browser
+`GET /api/plays` returns all nine fixed game IDs in `counts` (lifetime plays), `weeklyCounts`
+(plays in the rolling last seven days), and `lastUpdated` (UTC date strings or null). It also
+returns `weeklyTrackingStartedAt` and an increasing `asOf` timestamp so delayed responses cannot
+replace fresher rankings. `POST /api/plays/<game-id>` with an empty body adds one real play event
+and returns the updated snapshot. The browser
 sends this request without delaying navigation, including keyboard activation and new-tab clicks.
 Counts measure clicks from the portal, not sessions, unique people, or visits directly to a game.
 No accounts, cookies, IP addresses, or other visitor identifiers are stored by the counter.
 
 The owner requested initial totals of **225 for Deadpoint**, **30 for Bag Brawl**, **10 for Primordial**,
 and **0 for every other game**. These initialize new database rows only; restarts and redeployments
-never reset existing totals. The catalog ranks games by the latest shared totals, highest first.
+never reset existing totals. The default sort ranks games by the latest shared totals, highest first.
 Equal totals retain the original catalog order (Primordial, then Primordial: Tactics, followed by
 the other games). Hovering or focusing a card does not freeze the ranking, and keyboard focus stays
 on the same link when cards move. Reordering waits only while a pointer button or activation key
 is held, then applies after the gesture so the intended link still opens. Successful count responses,
 including Play increments, update the ranking. Returning to the portal tab or restoring it through
 the browser's back/forward cache refreshes both totals and order.
+The selected sort is remembered within the current tab. Visible pages refresh statistics every
+minute so the weekly window can change without another click.
+
+Trending counts only timestamped clicks in the interval `(now - 7 days, now]`. Existing totals and
+seeded plays have no click dates, so they are not backfilled into Trending. The interface shows
+when weekly tracking began while less than a full week has been collected. Each increment updates
+the lifetime count and records its timestamp in one SQLite transaction. Only the game ID and time
+are stored; no visitor identity is collected. Old events are pruned after eight days without
+changing lifetime totals. Weekly totals can decrease as clicks leave the seven-day window.
+
+### Game update dates
+
+The root-owned `counter/release_dates.py` collector scans only known deployed game code/assets,
+without executing game code. `/etc/cron.d/gameslop-catalog` runs it every five minutes and writes
+`/var/lib/gameslop-catalog/updates.json` atomically. Content fingerprints keep an unchanged game
+at its original date when a sibling game is deployed. The initial dates use available deployment
+history or game-file timestamps; an unavailable date is reported as null and sorts last.
+
+The counter service reads only the dates from that file via `GAMESLOP_UPDATES_FILE`. A missing or
+invalid file leaves play counts working. Collector errors are logged to `/var/log/gameslop-catalog.log`.
+For local date fixtures, run the server with `--updates-file <file>` containing a `lastUpdated` map.
+The normal portal deployment installs the collector and its schedule before updating the counter.
 
 The `gameslop-plays.service` systemd unit starts on boot, runs with a restricted dynamic user, and
 stores SQLite state at `/var/lib/gameslop-plays/plays.sqlite3` outside the public directory. SQLite

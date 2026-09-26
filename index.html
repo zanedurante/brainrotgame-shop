@@ -45,9 +45,13 @@
   .play svg { width: 16px; height: 16px; }
   .ranking-bar { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 6px 20px; padding-top: 18px; }
   .ranking-bar h2 { margin: 0; color: var(--ink); font-size: 15px; font-weight: 650; letter-spacing: .01em; }
-  .ranking-bar p { margin: 0; color: var(--muted); font-size: 12px; }
-  .card .play-count { display: flex; align-items: baseline; justify-content: center; gap: 5px; min-height: 19px; margin: -2px 0 0; color: var(--muted); font-size: 12px; line-height: 1.6; }
+  .ranking-bar select { max-width: 100%; padding: 9px 32px 9px 11px; border: 1px solid var(--line); border-radius: 9px; background: var(--panel); color: var(--ink); font: inherit; font-size: 13px; color-scheme: dark; cursor: pointer; }
+  .ranking-bar select:focus-visible { outline: 2px solid var(--sky); outline-offset: 3px; }
+  .ranking-help { margin: 8px 0 0; color: var(--muted); font-size: 12px; }
+  .ranking-help:empty { display: none; }
+  .card .play-count { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: center; column-gap: 5px; min-height: 19px; margin: -2px 0 0; color: var(--muted); font-size: 12px; line-height: 1.6; }
   .play-count .count-value { color: var(--ink); font-weight: 650; font-variant-numeric: tabular-nums; }
+  .play-count .count-detail { width: 100%; text-align: center; font-size: 11px; }
   .note { color: var(--muted); font-size: 14px; }
   .note a { color: var(--ink); }
   footer { border-top: 1px solid var(--line); padding: 26px 0 60px; color: var(--muted); font-size: 14px; display: flex; flex-wrap: wrap; gap: 8px 22px; }
@@ -63,7 +67,15 @@
     <p class="lede">Free games to play in browser <b>(zero downloads or accounts needed)</b>.</p>
   </header>
 
-  <div class="ranking-bar"><h2 id="ranking-title">All games</h2><p id="ranking-note">Shared play clicks</p></div>
+  <div class="ranking-bar">
+    <h2 id="ranking-title">All games</h2>
+    <select id="sort-order" aria-label="Sort games" aria-describedby="ranking-note">
+      <option value="plays">Sort by number of plays</option>
+      <option value="updated">Sort by newest update</option>
+      <option value="trending">Trending</option>
+    </select>
+  </div>
+  <p class="ranking-help" id="ranking-note" role="status"></p>
   <main class="grid" aria-labelledby="ranking-title">
 
     <article class="card" data-game="primordial" style="--accent: #8fdcae">

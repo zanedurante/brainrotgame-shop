@@ -8,6 +8,7 @@ DynamicUser=yes
 StateDirectory=gameslop-plays
 StateDirectoryMode=0700
 Environment=GAMESLOP_PLAYS_DB=/var/lib/gameslop-plays/plays.sqlite3
+Environment=GAMESLOP_UPDATES_FILE=/var/lib/gameslop-catalog/updates.json
 ExecStart=/usr/bin/python3 -I /opt/brainrotgame/counter/server.py --port 3012
 Restart=on-failure
 RestartSec=2
