@@ -68,6 +68,31 @@ class ExportTests(unittest.TestCase):
         self.assertIsNotNone(path)
         self.assertEqual(len(list(self.output.glob("*.json"))), 2)
 
+    def test_nine_game_history_keeps_its_schedule_and_new_exports_include_hypercycle(self):
+        self.output.mkdir()
+        legacy_counts = {slug: self.counts[slug] for slug in exporter.PRE_HYPERCYCLE_SLUGS}
+        previous = self.now - timedelta(hours=36)
+        legacy = self.output / ("plays-" + previous.strftime(exporter.STAMP) + ".json")
+        legacy.write_text(json.dumps({"exported_at": previous.isoformat().replace("+00:00", "Z"), "counts": legacy_counts}), encoding="utf-8")
+        original_bytes = legacy.read_bytes()
+        self.assertIsNone(self.export())
+        self.assertIsNone(self.export(now=previous + timedelta(hours=71, minutes=59, seconds=59)))
+        current = self.export(now=previous + timedelta(hours=72))
+        self.assertEqual(json.loads(current.read_text())["counts"], self.counts)
+        self.assertEqual(legacy.read_bytes(), original_bytes)
+        self.assertEqual(len(list(self.output.glob("*.json"))), 2)
+
+    def test_historical_compatibility_does_not_accept_an_incomplete_current_database(self):
+        with closing(sqlite3.connect(self.db)) as connection:
+            connection.execute("DELETE FROM plays WHERE slug='hypercycle'")
+            connection.commit()
+        with self.assertRaises(ValueError):
+            self.export()
+        self.assertEqual(list(self.output.glob("*.json")), [])
+        missing_old_game = {slug: self.counts[slug] for slug in exporter.SLUGS if slug != "grove"}
+        with self.assertRaises(ValueError):
+            exporter.validate_counts(missing_old_game, historical=True)
+
     def test_missing_invalid_or_incomplete_database_never_creates_an_export(self):
         missing = self.root / "missing.sqlite3"
         with self.assertRaises(sqlite3.Error):

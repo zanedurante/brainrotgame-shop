@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
-"""Record content changes in the nine fixed production games; never run game code.
+"""Record content changes in the ten fixed production games; never run game code.
 
 Current files are hashed on each run. Only first observations consult the bounded
-six-game release manifest chain. Dates survive sibling releases and collector
+game release manifest chain. Dates survive sibling releases and collector
 reinstalls; an observed rollback is a new content-change event. Run as root so
 atomic 0644 output remains readable by the counter's DynamicUser.
 """
@@ -19,9 +19,10 @@ import sys
 import tempfile
 
 SLUGS = ("primordial", "primordial-tactics", "bagbrawl", "deadpoint", "headsup",
-         "grove", "emberwild", "emberfell", "pelaglyph")
+         "grove", "emberwild", "emberfell", "pelaglyph", "hypercycle")
 BUNDLE = {"primordial": "primordial-action", "primordial-tactics": "primordial",
-          "grove": "grove", "emberwild": "emberwild", "emberfell": "emberfell", "pelaglyph": "pelaglyph"}
+          "grove": "grove", "emberwild": "emberwild", "emberfell": "emberfell", "pelaglyph": "pelaglyph", "hypercycle": "hypercycle"}
+HYPERCYCLE_RUNTIME = ("serve.mjs", "hypercycle.mjs", "websocket.mjs")
 ALGORITHM = "sha256-path-size-content-v1"
 PUBLIC = frozenset(".html .htm .css .js .mjs .cjs .json .webmanifest .svg .png .jpg .jpeg .gif .webp .avif .ico .woff .woff2 .ttf .otf .eot .mp3 .ogg .wav .m4a .mp4 .webm .wasm".split())
 RUNTIME = frozenset(".js .mjs .cjs .json .wasm .glsl .wgsl".split())
@@ -131,9 +132,12 @@ def game_location(root, slug):
         pointer = owner / "current"
         release = confined(pointer, owner)
         if release != owner / "current" and release.parent != owner / "releases":
-            raise ValueError("Unexpected six-game release location")
+            raise ValueError("Unexpected game release location")
         public = confined(release / "games" / BUNDLE[slug], release)
-        return [(public, "", False)], release, pointer
+        trees = [(public, "", False)]
+        if slug == "hypercycle":
+            trees.append((confined(release / "realtime", release), "realtime/", "hypercycle-runtime"))
+        return trees, release, pointer
     owner = root / slug
     public = confined(owner / "dist", owner)
     trees = [(public, "dist/" if slug != "headsup" else "", False)]
@@ -154,17 +158,28 @@ def game_location(root, slug):
 
 
 def game_inventory(trees):
-    ordinary = [tree for tree in trees if tree[2] != "packages"]
+    ordinary = [tree for tree in trees if tree[2] not in ("packages", "hypercycle-runtime")]
     result = inventory(ordinary)
     for directory, _, mode in trees:
-        if mode != "packages":
+        if mode == "packages":
+            names, prefix = ("package.json", "package-lock.json"), "app/"
+        elif mode == "hypercycle-runtime":
+            # Hash only the three reviewed server entrypoints. Never scan other
+            # runtime files, dependencies, credentials, logs, or saved state.
+            names, prefix = HYPERCYCLE_RUNTIME, "realtime/"
+        else:
             continue
-        for name in ("package.json", "package-lock.json"):
+        for name in names:
             filename = directory / name
             info = filename.lstat()
             if not stat.S_ISREG(info.st_mode) or info.st_size > MAX_FILE_BYTES:
-                raise ValueError("Invalid runtime package manifest")
-            result["app/" + name] = (filename, *file_signature(info))
+                raise ValueError("Invalid fixed runtime file")
+            logical = prefix + name
+            if logical in result:
+                raise ValueError("Duplicate public/runtime content path")
+            result[logical] = (filename, *file_signature(info))
+    if len(result) > MAX_FILES or sum(row[1] for row in result.values()) > MAX_GAME_BYTES:
+        raise ValueError("Game exceeds collector inventory bounds")
     return result
 
 
@@ -216,8 +231,15 @@ def read_metadata(filename):
 
 def manifest_fingerprint(manifest, slug):
     game = next(game for game in manifest["games"] if game["slug"] == BUNDLE[slug])
+    files = list(game["files"])
+    if slug == "hypercycle":
+        runtime = manifest["realtime"]["hypercycle"]
+        runtime_files = runtime["files"]
+        if runtime["source"] != "realtime" or len(runtime_files) != len(HYPERCYCLE_RUNTIME) or {row["path"] for row in runtime_files} != set(HYPERCYCLE_RUNTIME):
+            raise ValueError("Invalid Hypercycle runtime inventory")
+        files.extend({**row, "path": "realtime/" + row["path"]} for row in runtime_files)
     records = []
-    for row in game["files"]:
+    for row in files:
         name, length, digest = row["path"], row["bytes"], row["sha256"]
         if not isinstance(name, str) or "\\" in name or PurePosixPath(name).is_absolute() or ".." in PurePosixPath(name).parts:
             raise ValueError("Invalid historical game path")

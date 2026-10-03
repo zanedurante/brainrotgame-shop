@@ -38,7 +38,7 @@ class ReleaseDateTests(unittest.TestCase):
         os.utime(target, (mtime, mtime))
         return target
 
-    def release(self, name, created, base=None, changes=None):
+    def release(self, name, created, base=None, changes=None, runtime_changes=None):
         directory = self.root / "gameslop" / "releases" / name
         if base:
             shutil.copytree(self.root / "gameslop" / "releases" / base, directory)
@@ -47,6 +47,11 @@ class ReleaseDateTests(unittest.TestCase):
                 self.file(f"gameslop/releases/{name}/games/{folder}/index.html", slug)
         for folder, content in (changes or {}).items():
             self.file(f"gameslop/releases/{name}/games/{folder}/index.html", content, created)
+        for filename in collector.HYPERCYCLE_RUNTIME:
+            if not (directory / "realtime" / filename).exists():
+                self.file(f"gameslop/releases/{name}/realtime/{filename}", f"runtime:{filename}", created)
+        for filename, content in (runtime_changes or {}).items():
+            self.file(f"gameslop/releases/{name}/realtime/{filename}", content, created)
         games = []
         for folder in collector.BUNDLE.values():
             public = directory / "games" / folder
@@ -57,6 +62,11 @@ class ReleaseDateTests(unittest.TestCase):
                     records.append({"path": filename.relative_to(public).as_posix(), "bytes": len(content), "sha256": collector.hashlib.sha256(content).hexdigest()})
             games.append({"slug": folder, "files": records})
         manifest = {"releaseId": name, "createdAt": collector.iso(created), "games": games}
+        runtime = []
+        for filename in collector.HYPERCYCLE_RUNTIME:
+            content = (directory / "realtime" / filename).read_bytes()
+            runtime.append({"path": filename, "bytes": len(content), "sha256": collector.hashlib.sha256(content).hexdigest()})
+        manifest["realtime"] = {"hypercycle": {"source": "realtime", "files": runtime}}
         if base:
             manifest["baseReleaseId"] = base
         (directory / "manifest.json").write_text(json.dumps(manifest), encoding="utf-8")
@@ -98,6 +108,48 @@ class ReleaseDateTests(unittest.TestCase):
         self.output.unlink()
         reinstalled = collector.run(self.root, self.output, now=T3)
         self.assertEqual(reinstalled["lastUpdated"], first["lastUpdated"])
+
+    def test_hypercycle_first_release_stops_at_older_nine_game_manifest(self):
+        original = self.root / "gameslop/releases/r0"
+        shutil.rmtree(original / "games/hypercycle")
+        shutil.rmtree(original / "realtime")
+        manifest = json.loads((original / "manifest.json").read_text())
+        manifest["games"] = [game for game in manifest["games"] if game["slug"] != "hypercycle"]
+        del manifest["realtime"]
+        (original / "manifest.json").write_text(json.dumps(manifest))
+        self.activate("r0")
+        with patch.object(collector, "SLUGS", tuple(slug for slug in collector.SLUGS if slug != "hypercycle")):
+            previous = collector.collect(self.root, now=T1)
+        self.release("r-hypercycle", T2, "r0", {"hypercycle": "new neon arena"})
+        self.activate("r-hypercycle")
+        current = collector.collect(self.root, previous, now=T3)
+        self.assertEqual(current["lastUpdated"]["hypercycle"], collector.iso(T2))
+        self.assertEqual(current["source"]["hypercycle"]["release"], "r-hypercycle")
+        self.assertFalse(current["errors"])
+        for slug in previous["lastUpdated"]:
+            self.assertEqual(current["lastUpdated"][slug], previous["lastUpdated"][slug])
+            self.assertEqual(current["fingerprints"][slug], previous["fingerprints"][slug])
+
+    def test_hypercycle_server_only_release_has_its_own_update_date(self):
+        self.release("r1", T1, "r0", runtime_changes={"hypercycle.mjs": "updated room server"})
+        self.release("r2", T2, "r1", {"pelaglyph": "changed sandbox"})
+        self.activate("r2")
+        result = collector.collect(self.root, now=T3)
+        self.assertEqual(result["lastUpdated"]["hypercycle"], collector.iso(T1))
+        self.assertEqual(result["lastUpdated"]["pelaglyph"], collector.iso(T2))
+        self.assertEqual(result["lastUpdated"]["grove"], collector.iso(T0))
+        self.assertEqual(result["source"]["hypercycle"]["method"], "release-history")
+
+    def test_hypercycle_hashes_only_the_three_fixed_runtime_files(self):
+        original = collector.collect(self.root, now=T1)
+        self.file("gameslop/current/realtime/unrelated.mjs", "must not affect Hypercycle", T2)
+        self.assertEqual(collector.collect(self.root, original, now=T2), original)
+        self.file("gameslop/current/realtime/websocket.mjs", "updated wire protocol", T2)
+        changed = collector.collect(self.root, original, now=T3)
+        self.assertEqual(changed["lastUpdated"]["hypercycle"], collector.iso(T3))
+        self.assertNotEqual(changed["fingerprints"]["hypercycle"], original["fingerprints"]["hypercycle"])
+        for slug in set(collector.SLUGS) - {"hypercycle"}:
+            self.assertEqual(changed["lastUpdated"][slug], original["lastUpdated"][slug])
 
     def test_content_change_only_bumps_the_changed_game(self):
         first = collector.collect(self.root, now=T1)

@@ -16,17 +16,21 @@ except ImportError:  # Keep the same exporter testable on Windows development ma
     fcntl = None
     import msvcrt
 
-SLUGS = ("primordial", "primordial-tactics", "bagbrawl", "deadpoint", "headsup", "grove", "emberwild", "emberfell", "pelaglyph")
+SLUGS = ("primordial", "primordial-tactics", "bagbrawl", "deadpoint", "headsup", "grove", "emberwild", "emberfell", "pelaglyph", "hypercycle")
+PRE_HYPERCYCLE_SLUGS = tuple(slug for slug in SLUGS if slug != "hypercycle")
 INTERVAL = timedelta(hours=72)
 STAMP = "%Y%m%dT%H%M%S%fZ"
 
 
-def validate_counts(counts):
-    if not isinstance(counts, dict) or set(counts) != set(SLUGS):
-        raise ValueError("A snapshot must contain all nine known games")
+def validate_counts(counts, *, historical=False):
+    # Retained nine-game exports still determine the 72-hour schedule. Only new
+    # snapshots must include Hypercycle; historical files are never rewritten.
+    expected = PRE_HYPERCYCLE_SLUGS if historical and isinstance(counts, dict) and set(counts) == set(PRE_HYPERCYCLE_SLUGS) else SLUGS
+    if not isinstance(counts, dict) or set(counts) != set(expected):
+        raise ValueError("A snapshot must contain every game in its catalog")
     if any(type(count) is not int or count < 0 for count in counts.values()):
         raise ValueError("Play counts must be nonnegative integers")
-    return {slug: counts[slug] for slug in SLUGS}
+    return {slug: counts[slug] for slug in expected}
 
 
 @contextmanager
@@ -71,7 +75,7 @@ def latest_snapshot(directory):
     data = json.loads(path.read_text(encoding="utf-8"))
     if not isinstance(data, dict) or data.get("exported_at") != stamp.isoformat().replace("+00:00", "Z"):
         raise ValueError("Latest export has invalid timestamp metadata")
-    validate_counts(data.get("counts"))
+    validate_counts(data.get("counts"), historical=True)
     return stamp
 
 
