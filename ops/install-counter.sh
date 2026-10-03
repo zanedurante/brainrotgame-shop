@@ -69,7 +69,7 @@ systemctl restart gameslop-plays
 curl --fail --silent --show-error --connect-timeout 5 --max-time 15 --retry 10 --retry-connrefused --retry-delay 1 http://127.0.0.1:3012/api/plays > "$backup/initial-counts.json"
 python3 - "$backup/initial-counts.json" <<'PY'
 import json, sys
-slugs = {'primordial', 'primordial-tactics', 'bagbrawl', 'deadpoint', 'headsup', 'grove', 'emberwild', 'emberfell', 'pelaglyph'}
+slugs = {'primordial', 'primordial-tactics', 'bagbrawl', 'deadpoint', 'headsup', 'grove', 'emberwild', 'emberfell', 'pelaglyph', 'hypercycle'}
 with open(sys.argv[1]) as handle:
     snapshot = json.load(handle)
 for field in ('counts', 'weeklyCounts'):

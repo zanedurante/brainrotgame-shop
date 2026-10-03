@@ -1,6 +1,6 @@
 # brainrotgame.shop · gameslop.now
 
-The front door for nine games, answering on two domains. Each card shows the shared total of Play
+The front door for ten games, answering on two domains. Each card shows the shared total of Play
 button clicks. The sort menu defaults to **Sort by number of plays**, with **Sort by newest update**
 and **Trending** (play clicks in the last seven days) also available. The header and title say
 whichever name the visitor typed; both domains use the same counters.
@@ -34,7 +34,7 @@ Both need SSH to the droplet as root with the owner's key; the address is in `op
 
 ## Shared play counts
 
-`GET /api/plays` returns all nine fixed game IDs in `counts` (lifetime plays), `weeklyCounts`
+`GET /api/plays` returns all ten fixed game IDs in `counts` (lifetime plays), `weeklyCounts`
 (plays in the rolling last seven days), and `lastUpdated` (UTC date strings or null). It also
 returns `weeklyTrackingStartedAt` and an increasing `asOf` timestamp so delayed responses cannot
 replace fresher rankings. `POST /api/plays/<game-id>` with an empty body adds one real play event
@@ -69,6 +69,10 @@ without executing game code. `/etc/cron.d/gameslop-catalog` runs it every five m
 `/var/lib/gameslop-catalog/updates.json` atomically. Content fingerprints keep an unchanged game
 at its original date when a sibling game is deployed. The initial dates use available deployment
 history or game-file timestamps; an unavailable date is reported as null and sorts last.
+Hypercycle's fingerprint includes its public files plus the three fixed server files
+`realtime/serve.mjs`, `realtime/hypercycle.mjs`, and `realtime/websocket.mjs` in the same release.
+Its first date comes from the first manifest containing that game and runtime; adding it does not
+change the dates of the existing games. Server-only Hypercycle releases also count as updates.
 
 The counter service reads only the dates from that file via `GAMESLOP_UPDATES_FILE`. A missing or
 invalid file leaves play counts working. Collector errors are logged to `/var/log/gameslop-catalog.log`.
@@ -96,10 +100,12 @@ that a day-of-month `*/3` cron expression creates at month boundaries. After ser
 next check saves an overdue snapshot. The first export is created during installation.
 
 Snapshots are private, timestamped JSON files in **`/var/backups/gameslop/plays`**, containing a UTC
-export timestamp and a `counts` map for all nine games. The export reads a consistent SQLite
+export timestamp and a `counts` map for all ten games. The export reads a consistent SQLite
 snapshot, writes atomically, and never changes live counters. Old exports are retained. Failures
 leave the previous successful snapshot intact and are logged in `/var/log/gameslop-plays-export.log`.
 This folder is on the same server; it is not an off-server disaster recovery backup.
+Exports made before Hypercycle was added retain their original nine-game map. They remain valid
+history for the 72-hour schedule; new exports require all ten games and do not rewrite old files.
 
 The normal deployment preserves the schedule and export history. To install only this job, upload
 `counter/export_counts.py`, `ops/gameslop-plays-export.cron`, and `ops/install-exports.sh` into a
@@ -111,8 +117,10 @@ root. For an extra manual snapshot, run the cron command with `--force` (without
 Copy one of the `<article class="card" data-game="...">` blocks in `index.html`, give it a unique
 `data-game` ID, `--accent` colour, short blurb, meta chips, Play link, and `data-play-count` label.
 Add the same ID with a zero starting total to the backend's fixed game map in `counter/server.py`.
-Keep it to what the game is and how many can play; the game's own page does the selling. Run the tests
-and then `npm run deploy`.
+Update the exporter, release-date collector, installer API validation, and their test fixtures with
+the same ID. Preserve existing database rows and accept older catalog exports only as history.
+Keep it to what the game is and how many can play; the game's own page does the selling. Publish
+and verify the game before the portal release, then run the tests and `npm run deploy`.
 
 ## Adding a domain
 
@@ -149,3 +157,13 @@ Each hostname has a Porkbun A record pointing to `24.199.123.123` (TTL 600). Cad
 The six game source projects and snapshot/deployment scripts are in `C:/Users/Zane Durante/Documents/New project`; see `gameslop-rollout/README.md` there for the source mapping and release commands. `npm run deploy` in this hub repository updates the catalog and its counter service. Game changes require a new verified static release, managed independently in the private `zanedurante/gameslop-games` repository.
 
 The two Primordial entries refer to different games. Keep their public roots and hostnames separate. Existing browser saves from localhost or private preview domains do not automatically transfer to these new hostnames.
+
+## Hypercycle
+
+- Hypercycle — https://hypercycle.gameslop.now
+
+Neon light-cycle combat for 2–8 online riders, with solo CPU opponents and keyboard/gamepad
+controls. The source does not provide touch driving controls. Its static game files share the
+versioned game bundle, while online play uses the bundled realtime server managed separately
+from this portal. The new `hypercycle` counter row starts at zero; adding it preserves all existing
+lifetime totals, weekly events, the weekly tracking start, update dates, and export history.
