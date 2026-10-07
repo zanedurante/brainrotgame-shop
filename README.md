@@ -172,7 +172,7 @@ lifetime totals, weekly events, the weekly tracking start, update dates, and exp
 ## Litigation and Hollowtide
 
 - Litigation — https://litigation.gameslop.now — solo pixel horror with keyboard controls and checkpoint saves.
-- Hollowtide — https://hollowtide.gameslop.now — solo fantasy exploration with keyboard/mouse controls and browser saves.
+- Hollowtide — https://hollowtide.gameslop.now — fantasy exploration for 1–4 players, with online co-op or solo play and keyboard/mouse controls.
 
 Their private source repositories are `bridger2500/litigation` and `bridger2500/hollowtide`.
 Each builds independently with Vite. Caddy serves only the production assets under
@@ -183,4 +183,7 @@ exact build using its own restricted deployment key. PRs still require an ordina
 The collector hashes each active `site/` and uses the matching `release.json` deployment date
 for its first observation. Later content changes update that game's date while unchanged games
 retain theirs. Both new counter rows start at zero and preserve existing totals and export history.
-Hollowtide's simulation has party support, but its current browser build has no online host/join mode.
+Hollowtide's online rooms use its same-origin co-op service. One browser hosts the shared world;
+the host must keep the game open. Quests, enemies, dungeon trips and the sloop are shared.
+The host's separate party save preserves progression for returning players, while solo saves
+remain separate.
