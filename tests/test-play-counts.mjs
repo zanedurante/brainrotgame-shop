@@ -90,11 +90,12 @@ test('shared play counts keep navigation native, totals truthful, and ranking cu
       for (const slug of ['litigation', 'hollowtide']) {
         assert.equal(await countText(page, slug), '0 plays');
         assert.equal(await page.locator(`[data-game="${slug}"] a.play`).getAttribute('href'), `https://${slug}.gameslop.now`);
-        assert.equal(await page.locator(`[data-game="${slug}"] .meta span`).first().textContent(), '1 player');
+        assert.equal(await page.locator(`[data-game="${slug}"] .meta span`).first().textContent(), slug === 'hollowtide' ? '1–4 players' : '1 player');
       }
       assert.equal(await page.locator('[data-game="primordial"] a.play').getAttribute('href'), 'https://primordial-action.gameslop.now');
       assert.equal(await page.locator('[data-game="hypercycle"] a.play').getAttribute('href'), 'https://hypercycle.gameslop.now');
       assert.deepEqual(await page.locator('[data-game="hypercycle"] .meta span').allTextContents(), ['2–8 riders', 'Online or solo vs CPU', 'Keyboard + gamepad']);
+      assert.deepEqual(await page.locator('[data-game="hollowtide"] .meta span').allTextContents(), ['1–4 players', 'Online co-op or solo', 'Keyboard + mouse']);
       assert.equal(await page.locator('#ranking-note').textContent(), '');
       assert.equal(await page.getByRole('combobox', { name: 'Sort games' }).inputValue(), 'plays');
       assert.deepEqual(await page.locator('#sort-order option').allTextContents(), ['Sort by number of plays', 'Sort by newest update', 'Trending']);
