@@ -18,7 +18,7 @@ from urllib.parse import unquote, urlsplit
 
 SLUGS = (
     "primordial", "primordial-tactics", "bagbrawl", "deadpoint", "headsup",
-    "grove", "emberwild", "emberfell", "pelaglyph", "hypercycle",
+    "grove", "emberwild", "emberfell", "pelaglyph", "hypercycle", "litigation", "hollowtide",
 )
 INITIAL_COUNTS = {slug: {"deadpoint": 225, "bagbrawl": 30, "primordial": 10}.get(slug, 0) for slug in SLUGS}
 PORTAL_ORIGINS = frozenset(("https://gameslop.now", "https://brainrotgame.shop"))

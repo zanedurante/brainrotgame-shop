@@ -93,6 +93,18 @@ class ExportTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             exporter.validate_counts(missing_old_game, historical=True)
 
+    def test_ten_game_history_preserves_schedule_when_two_games_are_added(self):
+        self.output.mkdir()
+        previous = self.now - timedelta(hours=24)
+        counts = {slug: self.counts[slug] for slug in exporter.PRE_BRIDGER_SLUGS}
+        legacy = self.output / ("plays-" + previous.strftime(exporter.STAMP) + ".json")
+        legacy.write_text(json.dumps({"exported_at": previous.isoformat().replace("+00:00", "Z"), "counts": counts}), encoding="utf-8")
+        original = legacy.read_bytes()
+        self.assertIsNone(self.export())
+        current = self.export(now=previous + timedelta(hours=72))
+        self.assertEqual(json.loads(current.read_text())["counts"], self.counts)
+        self.assertEqual(legacy.read_bytes(), original)
+
     def test_missing_invalid_or_incomplete_database_never_creates_an_export(self):
         missing = self.root / "missing.sqlite3"
         with self.assertRaises(sqlite3.Error):

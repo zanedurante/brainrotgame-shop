@@ -1,6 +1,6 @@
 # brainrotgame.shop · gameslop.now
 
-The front door for ten games, answering on two domains. Each card shows the shared total of Play
+The front door for twelve games, answering on two domains. Each card shows the shared total of Play
 button clicks. The sort menu defaults to **Sort by number of plays**, with **Sort by newest update**
 and **Trending** (play clicks in the last seven days) also available. The header and title say
 whichever name the visitor typed; both domains use the same counters.
@@ -34,7 +34,7 @@ Both need SSH to the droplet as root with the owner's key; the address is in `op
 
 ## Shared play counts
 
-`GET /api/plays` returns all ten fixed game IDs in `counts` (lifetime plays), `weeklyCounts`
+`GET /api/plays` returns all twelve fixed game IDs in `counts` (lifetime plays), `weeklyCounts`
 (plays in the rolling last seven days), and `lastUpdated` (UTC date strings or null). It also
 returns `weeklyTrackingStartedAt` and an increasing `asOf` timestamp so delayed responses cannot
 replace fresher rankings. `POST /api/plays/<game-id>` with an empty body adds one real play event
@@ -100,12 +100,13 @@ that a day-of-month `*/3` cron expression creates at month boundaries. After ser
 next check saves an overdue snapshot. The first export is created during installation.
 
 Snapshots are private, timestamped JSON files in **`/var/backups/gameslop/plays`**, containing a UTC
-export timestamp and a `counts` map for all ten games. The export reads a consistent SQLite
+export timestamp and a `counts` map for all twelve games. The export reads a consistent SQLite
 snapshot, writes atomically, and never changes live counters. Old exports are retained. Failures
 leave the previous successful snapshot intact and are logged in `/var/log/gameslop-plays-export.log`.
 This folder is on the same server; it is not an off-server disaster recovery backup.
-Exports made before Hypercycle was added retain their original nine-game map. They remain valid
-history for the 72-hour schedule; new exports require all ten games and do not rewrite old files.
+Exports made before Hypercycle or the two Bridger games retain their original nine- or ten-game
+map. They remain valid history for the 72-hour schedule; new exports require all twelve games
+and do not rewrite old files.
 
 The normal deployment preserves the schedule and export history. To install only this job, upload
 `counter/export_counts.py`, `ops/gameslop-plays-export.cron`, and `ops/install-exports.sh` into a
@@ -167,3 +168,19 @@ controls. The source does not provide touch driving controls. Its static game fi
 versioned game bundle, while online play uses the bundled realtime server managed separately
 from this portal. The new `hypercycle` counter row starts at zero; adding it preserves all existing
 lifetime totals, weekly events, the weekly tracking start, update dates, and export history.
+
+## Litigation and Hollowtide
+
+- Litigation — https://litigation.gameslop.now — solo pixel horror with keyboard controls and checkpoint saves.
+- Hollowtide — https://hollowtide.gameslop.now — solo fantasy exploration with keyboard/mouse controls and browser saves.
+
+Their private source repositories are `bridger2500/litigation` and `bridger2500/hollowtide`.
+Each builds independently with Vite. Caddy serves only the production assets under
+`/opt/gameslop-static/<slug>/current/site`; development servers and editor write endpoints are
+not exposed. Successful checks on a push or merge to each repository's `main` publish that
+exact build using its own restricted deployment key. PRs still require an ordinary merge.
+
+The collector hashes each active `site/` and uses the matching `release.json` deployment date
+for its first observation. Later content changes update that game's date while unchanged games
+retain theirs. Both new counter rows start at zero and preserve existing totals and export history.
+Hollowtide's simulation has party support, but its current browser build has no online host/join mode.

@@ -12,10 +12,10 @@ const temporary = await mkdtemp(join(tmpdir(), 'gameslop-integration-'));
 const python = process.env.PORTAL_PYTHON || 'python';
 const database = join(temporary, 'plays.sqlite3');
 const updatesFile = join(temporary, 'updates.json');
-const originalOrder = ['primordial', 'primordial-tactics', 'bagbrawl', 'deadpoint', 'headsup', 'grove', 'emberwild', 'emberfell', 'pelaglyph', 'hypercycle'];
-const expectedPlays = ['deadpoint', 'bagbrawl', 'primordial', 'primordial-tactics', 'headsup', 'grove', 'emberwild', 'emberfell', 'pelaglyph', 'hypercycle'];
-const expectedUpdated = ['hypercycle', 'pelaglyph', 'emberwild', 'primordial', 'primordial-tactics', 'bagbrawl', 'deadpoint', 'headsup', 'grove', 'emberfell'];
-const expectedTrending = ['primordial', 'bagbrawl', 'deadpoint', 'primordial-tactics', 'headsup', 'grove', 'emberwild', 'emberfell', 'pelaglyph', 'hypercycle'];
+const originalOrder = ['primordial', 'primordial-tactics', 'bagbrawl', 'deadpoint', 'headsup', 'grove', 'emberwild', 'emberfell', 'pelaglyph', 'hypercycle', 'litigation', 'hollowtide'];
+const expectedPlays = ['deadpoint', 'bagbrawl', 'primordial', 'primordial-tactics', 'headsup', 'grove', 'emberwild', 'emberfell', 'pelaglyph', 'hypercycle', 'litigation', 'hollowtide'];
+const expectedUpdated = ['hypercycle', 'pelaglyph', 'emberwild', 'primordial', 'primordial-tactics', 'bagbrawl', 'deadpoint', 'headsup', 'grove', 'emberfell', 'litigation', 'hollowtide'];
+const expectedTrending = ['primordial', 'bagbrawl', 'deadpoint', 'primordial-tactics', 'headsup', 'grove', 'emberwild', 'emberfell', 'pelaglyph', 'hypercycle', 'litigation', 'hollowtide'];
 await writeFile(updatesFile, JSON.stringify({ lastUpdated: { ...Object.fromEntries(originalOrder.map(slug => [slug, null])), hypercycle: '2026-10-02T09:00:00Z', pelaglyph: '2026-09-26T09:00:00Z', emberwild: '2026-09-25T09:00:00Z', primordial: '2026-09-24T09:00:00Z', 'primordial-tactics': '2026-09-24T09:00:00Z' } }));
 function fixture(code) {
   const result = spawnSync(python, ['-c', `import sys, time, sqlite3\nfrom counter.server import PlayStore\nstore = PlayStore(sys.argv[1])\nconnection = store.connect()\nnow = int(time.time() * 1000)\n${code}\nconnection.close()`, database], { cwd: root, encoding: 'utf8' });
@@ -47,7 +47,7 @@ try {
   await page.waitForFunction(() => document.querySelector('.card').dataset.game === 'deadpoint');
   const order = () => page.locator('.card').evaluateAll(cards => cards.map(card => card.dataset.game));
   assert.deepEqual(await order(), expectedPlays);
-  assert.equal(await page.locator('.card').count(), 10);
+  assert.equal(await page.locator('.card').count(), 12);
   assert.equal(await page.locator('[data-game="hypercycle"] .count-value').textContent(), '0');
   assert.match(await page.locator('[data-game="deadpoint"] [data-play-count]').textContent(), /225\s*plays/);
   const screenshots = join(root, 'test-results');

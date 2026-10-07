@@ -26,7 +26,7 @@ COUNTER = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(COUNTER)
 SLUGS = (
     "primordial", "primordial-tactics", "bagbrawl", "deadpoint", "headsup",
-    "grove", "emberwild", "emberfell", "pelaglyph", "hypercycle",
+    "grove", "emberwild", "emberfell", "pelaglyph", "hypercycle", "litigation", "hollowtide",
 )
 SEEDS = {slug: {"deadpoint": 225, "bagbrawl": 30, "primordial": 10}.get(slug, 0) for slug in SLUGS}
 ORIGIN = "https://gameslop.now"
@@ -313,8 +313,8 @@ class StoreMigrationAndWindowTests(unittest.TestCase):
     def store(self):
         return COUNTER.PlayStore(self.db, clock_ms=lambda: self.now)
 
-    def test_hypercycle_migration_preserves_nine_game_counts_events_and_tracking_start(self):
-        old_slugs = tuple(slug for slug in SLUGS if slug != "hypercycle")
+    def test_catalog_migration_preserves_ten_game_counts_events_and_tracking_start(self):
+        old_slugs = tuple(slug for slug in SLUGS if slug not in ("litigation", "hollowtide"))
         with patch.object(COUNTER, "SLUGS", old_slugs), patch.object(COUNTER, "INITIAL_COUNTS", {slug: SEEDS[slug] for slug in old_slugs}):
             original = self.store()
             original.metrics("grove")
@@ -325,16 +325,17 @@ class StoreMigrationAndWindowTests(unittest.TestCase):
         self.now += 1000
         upgraded = self.store()
         after = upgraded.metrics()
-        self.assertEqual(after["counts"], dict(before["counts"], hypercycle=0))
-        self.assertEqual(after["weeklyCounts"], dict(before["weeklyCounts"], hypercycle=0))
+        self.assertEqual(after["counts"], dict(before["counts"], litigation=0, hollowtide=0))
+        self.assertEqual(after["weeklyCounts"], dict(before["weeklyCounts"], litigation=0, hollowtide=0))
         self.assertEqual(after["weeklyTrackingStartedAt"], before["weeklyTrackingStartedAt"])
         self.assertGreater(after["asOf"], before["asOf"])
         with closing(sqlite3.connect(self.db)) as connection:
             self.assertEqual(connection.execute("SELECT slug, played_at_ms FROM play_events ORDER BY played_at_ms").fetchall(), old_events)
-            self.assertEqual(connection.execute("SELECT COUNT(*) FROM plays").fetchone()[0], 10)
-        clicked = upgraded.metrics("hypercycle")
-        self.assertEqual(clicked["counts"], dict(before["counts"], hypercycle=1))
-        self.assertEqual(clicked["weeklyCounts"], dict(before["weeklyCounts"], hypercycle=1))
+            self.assertEqual(connection.execute("SELECT COUNT(*) FROM plays").fetchone()[0], len(SLUGS))
+        upgraded.metrics("litigation")
+        clicked = upgraded.metrics("hollowtide")
+        self.assertEqual(clicked["counts"], dict(before["counts"], litigation=1, hollowtide=1))
+        self.assertEqual(clicked["weeklyCounts"], dict(before["weeklyCounts"], litigation=1, hollowtide=1))
         self.assertEqual(self.store().counts(), clicked["counts"])
 
     def test_additive_migration_preserves_legacy_totals_and_does_not_invent_events(self):
