@@ -16,16 +16,22 @@ except ImportError:  # Keep the same exporter testable on Windows development ma
     fcntl = None
     import msvcrt
 
-SLUGS = ("primordial", "primordial-tactics", "bagbrawl", "deadpoint", "headsup", "grove", "emberwild", "emberfell", "pelaglyph", "hypercycle")
-PRE_HYPERCYCLE_SLUGS = tuple(slug for slug in SLUGS if slug != "hypercycle")
+SLUGS = ("primordial", "primordial-tactics", "bagbrawl", "deadpoint", "headsup", "grove", "emberwild", "emberfell", "pelaglyph", "hypercycle", "litigation", "hollowtide")
+PRE_BRIDGER_SLUGS = tuple(slug for slug in SLUGS if slug not in ("litigation", "hollowtide"))
+PRE_HYPERCYCLE_SLUGS = tuple(slug for slug in PRE_BRIDGER_SLUGS if slug != "hypercycle")
 INTERVAL = timedelta(hours=72)
 STAMP = "%Y%m%dT%H%M%S%fZ"
 
 
 def validate_counts(counts, *, historical=False):
-    # Retained nine-game exports still determine the 72-hour schedule. Only new
-    # snapshots must include Hypercycle; historical files are never rewritten.
-    expected = PRE_HYPERCYCLE_SLUGS if historical and isinstance(counts, dict) and set(counts) == set(PRE_HYPERCYCLE_SLUGS) else SLUGS
+    # Retained nine- and ten-game exports preserve the 72-hour schedule.
+    # New snapshots require all twelve games; historical files are not rewritten.
+    expected = SLUGS
+    if historical and isinstance(counts, dict):
+        for catalog in (PRE_HYPERCYCLE_SLUGS, PRE_BRIDGER_SLUGS):
+            if set(counts) == set(catalog):
+                expected = catalog
+                break
     if not isinstance(counts, dict) or set(counts) != set(expected):
         raise ValueError("A snapshot must contain every game in its catalog")
     if any(type(count) is not int or count < 0 for count in counts.values()):

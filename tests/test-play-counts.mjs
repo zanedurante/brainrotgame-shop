@@ -9,16 +9,16 @@ let playwright;
 try { playwright = await import('playwright'); }
 catch { playwright = await import('../../../gameslop-games/node_modules/playwright/index.mjs'); }
 
-const originalOrder = ['primordial', 'primordial-tactics', 'bagbrawl', 'deadpoint', 'headsup', 'grove', 'emberwild', 'emberfell', 'pelaglyph', 'hypercycle'];
-const seededRanking = ['deadpoint', 'bagbrawl', 'primordial', 'primordial-tactics', 'headsup', 'grove', 'emberwild', 'emberfell', 'pelaglyph', 'hypercycle'];
-const seeds = () => ({ primordial: 10, 'primordial-tactics': 0, bagbrawl: 30, deadpoint: 225, headsup: 0, grove: 0, emberwild: 0, emberfell: 0, pelaglyph: 0, hypercycle: 0 });
+const originalOrder = ['primordial', 'primordial-tactics', 'bagbrawl', 'deadpoint', 'headsup', 'grove', 'emberwild', 'emberfell', 'pelaglyph', 'hypercycle', 'litigation', 'hollowtide'];
+const seededRanking = ['deadpoint', 'bagbrawl', 'primordial', 'primordial-tactics', 'headsup', 'grove', 'emberwild', 'emberfell', 'pelaglyph', 'hypercycle', 'litigation', 'hollowtide'];
+const seeds = () => ({ primordial: 10, 'primordial-tactics': 0, bagbrawl: 30, deadpoint: 225, headsup: 0, grove: 0, emberwild: 0, emberfell: 0, pelaglyph: 0, hypercycle: 0, litigation: 0, hollowtide: 0 });
 const epoch = Date.parse('2026-09-26T12:00:00Z');
 const day = 24 * 60 * 60 * 1000;
 const map = value => Object.fromEntries(originalOrder.map(slug => [slug, value]));
 const weeklySeeds = () => ({ ...map(0), primordial: 8, bagbrawl: 2, deadpoint: 1 });
 const updateSeeds = () => ({ ...map(null), hypercycle: '2026-09-26T10:00:00Z', pelaglyph: '2026-09-26T09:00:00Z', emberwild: '2026-09-25T09:00:00Z', primordial: '2026-09-24T09:00:00Z', 'primordial-tactics': '2026-09-24T09:00:00Z' });
-const updatedRanking = ['hypercycle', 'pelaglyph', 'emberwild', 'primordial', 'primordial-tactics', 'bagbrawl', 'deadpoint', 'headsup', 'grove', 'emberfell'];
-const trendingRanking = ['primordial', 'bagbrawl', 'deadpoint', 'primordial-tactics', 'headsup', 'grove', 'emberwild', 'emberfell', 'pelaglyph', 'hypercycle'];
+const updatedRanking = ['hypercycle', 'pelaglyph', 'emberwild', 'primordial', 'primordial-tactics', 'bagbrawl', 'deadpoint', 'headsup', 'grove', 'emberfell', 'litigation', 'hollowtide'];
+const trendingRanking = ['primordial', 'bagbrawl', 'deadpoint', 'primordial-tactics', 'headsup', 'grove', 'emberwild', 'emberfell', 'pelaglyph', 'hypercycle', 'litigation', 'hollowtide'];
 const html = await readFile(new URL('../index.html', import.meta.url));
 const script = await readFile(new URL('../assets/play-counts.js', import.meta.url));
 let state;
@@ -79,14 +79,19 @@ const waitOrder = (page, expected) => page.waitForFunction(expectedOrder =>
 
 test('shared play counts keep navigation native, totals truthful, and ranking current', async t => {
   try {
-    await t.test('loads all ten shared totals, ranks descending, and keeps original ties', async () => {
+    await t.test('loads all twelve shared totals, ranks descending, and keeps original ties', async () => {
       reset();
       const { page, errors } = await open();
       assert.deepEqual(await order(page), seededRanking);
       assert.equal(await countText(page, 'deadpoint'), '225 plays');
       assert.equal(await countText(page, 'grove'), '0 plays');
       assert.equal(await countText(page, 'hypercycle'), '0 plays');
-      assert.equal(await page.locator('.art svg').count(), 10);
+      assert.equal(await page.locator('.art svg').count(), 12);
+      for (const slug of ['litigation', 'hollowtide']) {
+        assert.equal(await countText(page, slug), '0 plays');
+        assert.equal(await page.locator(`[data-game="${slug}"] a.play`).getAttribute('href'), `https://${slug}.gameslop.now`);
+        assert.equal(await page.locator(`[data-game="${slug}"] .meta span`).first().textContent(), '1 player');
+      }
       assert.equal(await page.locator('[data-game="primordial"] a.play').getAttribute('href'), 'https://primordial-action.gameslop.now');
       assert.equal(await page.locator('[data-game="hypercycle"] a.play').getAttribute('href'), 'https://hypercycle.gameslop.now');
       assert.deepEqual(await page.locator('[data-game="hypercycle"] .meta span').allTextContents(), ['2–8 riders', 'Online or solo vs CPU', 'Keyboard + gamepad']);
@@ -128,11 +133,11 @@ test('shared play counts keep navigation native, totals truthful, and ranking cu
       await link.evaluate(element => { element.href = '#opened-hypercycle'; });
       await link.click();
       await page.waitForURL(`${origin}/#opened-hypercycle`);
-      await waitOrder(page, ['deadpoint', 'bagbrawl', 'primordial', 'hypercycle', 'primordial-tactics', 'headsup', 'grove', 'emberwild', 'emberfell', 'pelaglyph']);
+      await waitOrder(page, ['deadpoint', 'bagbrawl', 'primordial', 'hypercycle', 'primordial-tactics', 'headsup', 'grove', 'emberwild', 'emberfell', 'pelaglyph', 'litigation', 'hollowtide']);
       assert.equal(await countText(page, 'hypercycle'), '1 play');
       assert.equal(await countText(page, 'deadpoint'), '225 plays');
       await page.locator('#sort-order').selectOption('trending');
-      assert.deepEqual(await order(page), ['primordial', 'bagbrawl', 'deadpoint', 'hypercycle', 'primordial-tactics', 'headsup', 'grove', 'emberwild', 'emberfell', 'pelaglyph']);
+      assert.deepEqual(await order(page), ['primordial', 'bagbrawl', 'deadpoint', 'hypercycle', 'primordial-tactics', 'headsup', 'grove', 'emberwild', 'emberfell', 'pelaglyph', 'litigation', 'hollowtide']);
       assert.equal(await page.locator('[data-game="hypercycle"] .count-detail').textContent(), '1 in the last 7 days');
       assert.deepEqual(state.requests.filter(request => request.method === 'POST'), [{ method: 'POST', slug: 'hypercycle', body: '' }]);
       assert.deepEqual(errors, []);
@@ -162,7 +167,7 @@ test('shared play counts keep navigation native, totals truthful, and ranking cu
       state.weeklyCounts.deadpoint = 0;
       state.asOf += 8 * day;
       await page.evaluate(() => window.dispatchEvent(new PageTransitionEvent('pageshow', { persisted: true })));
-      await waitOrder(page, ['bagbrawl', 'primordial', 'primordial-tactics', 'deadpoint', 'headsup', 'grove', 'emberwild', 'emberfell', 'pelaglyph', 'hypercycle']);
+      await waitOrder(page, ['bagbrawl', 'primordial', 'primordial-tactics', 'deadpoint', 'headsup', 'grove', 'emberwild', 'emberfell', 'pelaglyph', 'hypercycle', 'litigation', 'hollowtide']);
       assert.equal(await page.locator('[data-game="primordial"] .count-detail').textContent(), '0 in the last 7 days');
       assert.equal(await page.locator('[data-game="primordial"] .count-value').textContent(), '10');
       assert.equal(await page.locator('#ranking-note').textContent(), 'Play clicks in the last 7 days.');
@@ -188,7 +193,7 @@ test('shared play counts keep navigation native, totals truthful, and ranking cu
       state.weeklyCounts = { ...map(0), bagbrawl: 1 };
       state.lastUpdated = { ...map(null), grove: '2026-09-27T00:00:00Z' };
       await page.evaluate(() => window.dispatchEvent(new PageTransitionEvent('pageshow', { persisted: true })));
-      const expected = ['bagbrawl', 'primordial', 'primordial-tactics', 'deadpoint', 'headsup', 'grove', 'emberwild', 'emberfell', 'pelaglyph', 'hypercycle'];
+      const expected = ['bagbrawl', 'primordial', 'primordial-tactics', 'deadpoint', 'headsup', 'grove', 'emberwild', 'emberfell', 'pelaglyph', 'hypercycle', 'litigation', 'hollowtide'];
       await waitOrder(page, expected);
       const olderResponse = page.waitForResponse(response => response.request().method() === pending && response.url().includes('/api/plays'));
       (pending === 'GET' ? state.pendingGet : state.pendingPost)[0]();
@@ -332,7 +337,7 @@ test('shared play counts keep navigation native, totals truthful, and ranking cu
       state.counts.pelaglyph = 12345;
       state.counts.grove = 1;
       await page.evaluate(() => window.dispatchEvent(new PageTransitionEvent('pageshow', { persisted: true })));
-      await waitOrder(page, ['pelaglyph', 'deadpoint', 'bagbrawl', 'primordial', 'grove', 'primordial-tactics', 'headsup', 'emberwild', 'emberfell', 'hypercycle']);
+      await waitOrder(page, ['pelaglyph', 'deadpoint', 'bagbrawl', 'primordial', 'grove', 'primordial-tactics', 'headsup', 'emberwild', 'emberfell', 'hypercycle', 'litigation', 'hollowtide']);
       assert.equal(await countText(page, 'pelaglyph'), '12,345 plays');
       assert.equal(await countText(page, 'grove'), '1 play');
       assert.equal(await page.locator('[data-game="primordial"] a.play').evaluate(element => document.activeElement === element), true);
@@ -351,7 +356,7 @@ test('shared play counts keep navigation native, totals truthful, and ranking cu
         Object.defineProperty(document, 'visibilityState', { configurable: true, get: () => 'visible' });
         document.dispatchEvent(new Event('visibilitychange'));
       });
-      await waitOrder(page, ['emberfell', 'deadpoint', 'bagbrawl', 'primordial', 'primordial-tactics', 'headsup', 'grove', 'emberwild', 'pelaglyph', 'hypercycle']);
+      await waitOrder(page, ['emberfell', 'deadpoint', 'bagbrawl', 'primordial', 'primordial-tactics', 'headsup', 'grove', 'emberwild', 'pelaglyph', 'hypercycle', 'litigation', 'hollowtide']);
       assert.equal(await countText(page, 'emberfell'), '226 plays');
       assert.equal(state.requests.filter(request => request.method === 'GET').length, 2);
       await page.close();
@@ -379,7 +384,7 @@ test('shared play counts keep navigation native, totals truthful, and ranking cu
       assert.deepEqual(await order(page), seededRanking, 'The browser does not invent a total before the response');
       assert.equal(await countText(page, 'primordial'), '10 plays');
       state.pendingPost[0]();
-      await waitOrder(page, ['primordial', 'deadpoint', 'bagbrawl', 'primordial-tactics', 'headsup', 'grove', 'emberwild', 'emberfell', 'pelaglyph', 'hypercycle']);
+      await waitOrder(page, ['primordial', 'deadpoint', 'bagbrawl', 'primordial-tactics', 'headsup', 'grove', 'emberwild', 'emberfell', 'pelaglyph', 'hypercycle', 'litigation', 'hollowtide']);
       assert.equal(await countText(page, 'primordial'), '226 plays');
       assert.deepEqual(state.requests.filter(request => request.method === 'POST'), [{ method: 'POST', slug: 'primordial', body: '' }]);
       assert.deepEqual(errors, []);

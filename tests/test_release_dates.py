@@ -30,6 +30,8 @@ class ReleaseDateTests(unittest.TestCase):
             self.file(f"{slug}/app/package.json", "{}")
             self.file(f"{slug}/app/package-lock.json", "{}")
         self.file("headsup/dist/index.html", "headsup")
+        for slug in collector.STATIC_GAMES:
+            self.static_release(slug, "s0", T0)
 
     def file(self, name, body, mtime=T0):
         target = self.root / name
@@ -37,6 +39,16 @@ class ReleaseDateTests(unittest.TestCase):
         target.write_text(body, encoding="utf-8")
         os.utime(target, (mtime, mtime))
         return target
+
+    def static_release(self, slug, name, created, content=None):
+        directory = self.root / "gameslop-static" / slug / "current"
+        if directory.exists():
+            shutil.rmtree(directory)
+        file = self.file(f"gameslop-static/{slug}/current/site/index.html", content or slug, created)
+        data = file.read_bytes()
+        metadata = {"version": 1, "game": slug, "commit": "a" * 40, "deployedAt": collector.iso(created), "files": [{"path": "index.html", "bytes": len(data), "sha256": collector.hashlib.sha256(data).hexdigest()}]}
+        (directory / "release.json").write_text(json.dumps(metadata), encoding="utf-8")
+        self.file(f"gameslop-static/{slug}/current/nonpublic.json", "not game content", created)
 
     def release(self, name, created, base=None, changes=None, runtime_changes=None):
         directory = self.root / "gameslop" / "releases" / name
@@ -97,6 +109,22 @@ class ReleaseDateTests(unittest.TestCase):
         self.assertEqual(result["lastUpdated"]["pelaglyph"], collector.iso(T2))
         self.assertEqual(result["lastUpdated"]["emberfell"], collector.iso(T0))
         self.assertEqual(result["source"]["grove"]["method"], "release-history")
+
+    def test_static_games_use_release_metadata_and_preserve_sibling_dates(self):
+        self.static_release("litigation", "s1", T1, "new courtroom")
+        self.static_release("hollowtide", "s2", T2, "new harbour")
+        os.utime(self.root / "gameslop-static/litigation/current/site/index.html", (T2, T2))
+        first = collector.collect(self.root, now=T3)
+        self.assertEqual(first["lastUpdated"]["litigation"], collector.iso(T1))
+        self.assertEqual(first["lastUpdated"]["hollowtide"], collector.iso(T2))
+        self.assertEqual(first["source"]["litigation"]["method"], "static-release")
+        self.file("gameslop-static/litigation/current/nonpublic.json", "metadata-only change", T3)
+        self.assertEqual(collector.collect(self.root, first, now=T3), first)
+        self.static_release("hollowtide", "s3", T3, "changed coast")
+        after = collector.collect(self.root, first, now=T3)
+        self.assertEqual(after["lastUpdated"]["hollowtide"], collector.iso(T3))
+        for slug in set(collector.SLUGS) - {"hollowtide"}:
+            self.assertEqual(after["lastUpdated"][slug], first["lastUpdated"][slug])
 
     def test_reinstall_and_repeat_do_not_fake_an_update(self):
         first = collector.run(self.root, self.output, now=T1)

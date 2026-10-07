@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Record content changes in the ten fixed production games; never run game code.
+"""Record content changes in the twelve fixed production games; never run game code.
 
 Current files are hashed on each run. Only first observations consult the bounded
 game release manifest chain. Dates survive sibling releases and collector
@@ -19,9 +19,10 @@ import sys
 import tempfile
 
 SLUGS = ("primordial", "primordial-tactics", "bagbrawl", "deadpoint", "headsup",
-         "grove", "emberwild", "emberfell", "pelaglyph", "hypercycle")
+         "grove", "emberwild", "emberfell", "pelaglyph", "hypercycle", "litigation", "hollowtide")
 BUNDLE = {"primordial": "primordial-action", "primordial-tactics": "primordial",
           "grove": "grove", "emberwild": "emberwild", "emberfell": "emberfell", "pelaglyph": "pelaglyph", "hypercycle": "hypercycle"}
+STATIC_GAMES = ("litigation", "hollowtide")
 HYPERCYCLE_RUNTIME = ("serve.mjs", "hypercycle.mjs", "websocket.mjs")
 ALGORITHM = "sha256-path-size-content-v1"
 PUBLIC = frozenset(".html .htm .css .js .mjs .cjs .json .webmanifest .svg .png .jpg .jpeg .gif .webp .avif .ico .woff .woff2 .ttf .otf .eot .mp3 .ogg .wav .m4a .mp4 .webm .wasm".split())
@@ -114,7 +115,8 @@ def inventory(trees):
 
 def pointer_tokens(root):
     names = ("gameslop/current", "bagbrawl/ci-current", "bagbrawl/app", "bagbrawl/dist",
-             "deadpoint/ci-current", "deadpoint/app", "deadpoint/dist", "headsup/dist")
+             "deadpoint/ci-current", "deadpoint/app", "deadpoint/dist", "headsup/dist",
+             "gameslop-static/litigation/current", "gameslop-static/hollowtide/current")
     tokens = []
     for name in names:
         pointer = root / name
@@ -127,6 +129,14 @@ def pointer_tokens(root):
 
 
 def game_location(root, slug):
+    if slug in STATIC_GAMES:
+        owner = root / "gameslop-static" / slug
+        pointer = owner / "current"
+        release = confined(pointer, owner)
+        if release != pointer and release.parent != owner / "releases":
+            raise ValueError("Unexpected static game release location")
+        public = confined(release / "site", release)
+        return [(public, "", False)], release, pointer
     if slug in BUNDLE:
         owner = root / "gameslop"
         pointer = owner / "current"
@@ -254,6 +264,17 @@ def manifest_fingerprint(manifest, slug):
 
 
 def bootstrap_date(root, slug, current, now):
+    if slug in STATIC_GAMES:
+        try:
+            metadata = read_metadata(current["releasePath"] / "release.json")
+            deployed = timestamp(metadata.get("deployedAt"))
+            records = metadata.get("files")
+            if (metadata.get("game") == slug and isinstance(records, list)
+                    and digest_records(records) == current["fingerprint"]
+                    and deployed is not None and 0 < deployed <= now):
+                return iso(deployed), {"method": "static-release", "release": current["release"]}
+        except (OSError, ValueError, KeyError, TypeError):
+            pass
     if slug in BUNDLE:
         folder, visited, best = current["releasePath"], set(), None
         for _ in range(MAX_HISTORY):
