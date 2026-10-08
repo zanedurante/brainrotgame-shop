@@ -137,6 +137,23 @@ class ReleaseDateTests(unittest.TestCase):
         reinstalled = collector.run(self.root, self.output, now=T3)
         self.assertEqual(reinstalled["lastUpdated"], first["lastUpdated"])
 
+    def test_grandstrat_addition_uses_its_release_date_without_changing_twelve_existing_dates(self):
+        original = collector.collect(self.root, now=T1)
+        for key in ("lastUpdated", "fingerprints", "source"):
+            original[key].pop("grandstrat")
+        self.static_release("grandstrat", "g1", T2, "1802 map")
+        first = collector.collect(self.root, original, now=T3)
+        self.assertEqual(first["lastUpdated"]["grandstrat"], collector.iso(T2))
+        self.assertEqual(first["source"]["grandstrat"]["method"], "static-release")
+        for slug in set(collector.SLUGS) - {"grandstrat"}:
+            self.assertEqual(first["lastUpdated"][slug], original["lastUpdated"][slug])
+        self.file("gameslop-static/grandstrat/current/nonpublic.json", "changed metadata", T3)
+        self.assertEqual(collector.collect(self.root, first, now=T3), first)
+        self.static_release("grandstrat", "g2", T3, "updated tactical map")
+        changed = collector.collect(self.root, first, now=T3)
+        self.assertEqual(changed["lastUpdated"]["grandstrat"], collector.iso(T3))
+        for slug in set(collector.SLUGS) - {"grandstrat"}:
+            self.assertEqual(changed["lastUpdated"][slug], first["lastUpdated"][slug])
     def test_hypercycle_first_release_stops_at_older_nine_game_manifest(self):
         original = self.root / "gameslop/releases/r0"
         shutil.rmtree(original / "games/hypercycle")
