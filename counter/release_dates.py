@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Record content changes in the twelve fixed production games; never run game code.
+"""Record content changes in the thirteen fixed production games; never run game code.
 
 Current files are hashed on each run. Only first observations consult the bounded
 game release manifest chain. Dates survive sibling releases and collector
@@ -19,10 +19,10 @@ import sys
 import tempfile
 
 SLUGS = ("primordial", "primordial-tactics", "bagbrawl", "deadpoint", "headsup",
-         "grove", "emberwild", "emberfell", "pelaglyph", "hypercycle", "litigation", "hollowtide")
+         "grove", "emberwild", "emberfell", "pelaglyph", "hypercycle", "litigation", "hollowtide", "grandstrat")
 BUNDLE = {"primordial": "primordial-action", "primordial-tactics": "primordial",
           "grove": "grove", "emberwild": "emberwild", "emberfell": "emberfell", "pelaglyph": "pelaglyph", "hypercycle": "hypercycle"}
-STATIC_GAMES = ("litigation", "hollowtide")
+STATIC_GAMES = ("litigation", "hollowtide", "grandstrat")
 HYPERCYCLE_RUNTIME = ("serve.mjs", "hypercycle.mjs", "websocket.mjs")
 ALGORITHM = "sha256-path-size-content-v1"
 PUBLIC = frozenset(".html .htm .css .js .mjs .cjs .json .webmanifest .svg .png .jpg .jpeg .gif .webp .avif .ico .woff .woff2 .ttf .otf .eot .mp3 .ogg .wav .m4a .mp4 .webm .wasm".split())
@@ -116,7 +116,8 @@ def inventory(trees):
 def pointer_tokens(root):
     names = ("gameslop/current", "bagbrawl/ci-current", "bagbrawl/app", "bagbrawl/dist",
              "deadpoint/ci-current", "deadpoint/app", "deadpoint/dist", "headsup/dist",
-             "gameslop-static/litigation/current", "gameslop-static/hollowtide/current")
+             "gameslop-static/litigation/current", "gameslop-static/hollowtide/current",
+             "gameslop-static/grandstrat/current")
     tokens = []
     for name in names:
         pointer = root / name
