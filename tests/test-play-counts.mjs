@@ -97,7 +97,7 @@ test('shared play counts keep navigation native, totals truthful, and ranking cu
       assert.deepEqual(await page.locator('[data-game="hypercycle"] .meta span').allTextContents(), ['2–8 riders', 'Online or solo vs CPU', 'Keyboard + gamepad']);
       assert.deepEqual(await page.locator('[data-game="hollowtide"] .meta span').allTextContents(), ['1–4 players', 'Online co-op or solo', 'Keyboard + mouse']);
       assert.equal(await page.locator('[data-game="grandstrat"] a.play').getAttribute('href'), 'https://grandstrat.gameslop.now');
-      assert.deepEqual(await page.locator('[data-game="grandstrat"] .meta span').allTextContents(), ['1 player', 'Grand strategy', 'Keyboard + mouse']);
+      assert.deepEqual(await page.locator('[data-game="grandstrat"] .meta span').allTextContents(), ['1–16 players', 'Grand strategy', 'Keyboard, mouse + touch']);
       assert.equal(await countText(page, 'grandstrat'), '0 plays');
       assert.equal(await page.locator('#ranking-note').textContent(), '');
       assert.equal(await page.getByRole('combobox', { name: 'Sort games' }).inputValue(), 'plays');
