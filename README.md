@@ -188,10 +188,13 @@ the host must keep the game open. Quests, enemies, dungeon trips and the sloop a
 The host's separate party save preserves progression for returning players, while solo saves
 remain separate.
 
-## MDCCCII — Grand Strategy, 1802
+## MDCCCII — Grand Strategy, Europe 1771
 
-- MDCCCII — https://grandstrat.gameslop.now — single-player grand strategy in Europe in 1802,
-  with economy, diplomacy, armies, fleets, and tactical battles; keyboard and mouse controls.
+- MDCCCII — https://grandstrat.gameslop.now — solo or online grand strategy in Europe from 1771,
+  with one player per controllable nation (currently up to 29). Create a campaign, share its
+  invitation link, and choose distinct nations; the AI runs unclaimed nations. The host controls
+  the shared clock. Campaigns save on the server and players can reconnect to their seats.
+  Economy, diplomacy, armies, fleets, and tactical battles support keyboard, mouse, and touch.
 
 The source repository is `bridger2500/grandstrat`. Its Vite build is served independently from
 `/opt/gameslop-static/grandstrat/current/site`. The `grandstrat` counter starts at zero while existing
