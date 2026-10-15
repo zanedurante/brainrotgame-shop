@@ -1,6 +1,6 @@
 # brainrotgame.shop · gameslop.now
 
-The front door for thirteen games, answering on two domains. Each card shows the shared total of Play
+The front door for fourteen games, answering on two domains. Each card shows the shared total of Play
 button clicks. The sort menu defaults to **Sort by number of plays**, with **Sort by newest update**
 and **Trending** (play clicks in the last seven days) also available. The header and title say
 whichever name the visitor typed; both domains use the same counters.
@@ -34,7 +34,7 @@ Both need SSH to the droplet as root with the owner's key; the address is in `op
 
 ## Shared play counts
 
-`GET /api/plays` returns all thirteen fixed game IDs in `counts` (lifetime plays), `weeklyCounts`
+`GET /api/plays` returns all fourteen fixed game IDs in `counts` (lifetime plays), `weeklyCounts`
 (plays in the rolling last seven days), and `lastUpdated` (UTC date strings or null). It also
 returns `weeklyTrackingStartedAt` and an increasing `asOf` timestamp so delayed responses cannot
 replace fresher rankings. `POST /api/plays/<game-id>` with an empty body adds one real play event
@@ -100,13 +100,13 @@ that a day-of-month `*/3` cron expression creates at month boundaries. After ser
 next check saves an overdue snapshot. The first export is created during installation.
 
 Snapshots are private, timestamped JSON files in **`/var/backups/gameslop/plays`**, containing a UTC
-export timestamp and a `counts` map for all thirteen games. The export reads a consistent SQLite
+export timestamp and a `counts` map for all fourteen games. The export reads a consistent SQLite
 snapshot, writes atomically, and never changes live counters. Old exports are retained. Failures
 leave the previous successful snapshot intact and are logged in `/var/log/gameslop-plays-export.log`.
 This folder is on the same server; it is not an off-server disaster recovery backup.
-Exports made before Hypercycle, the first two Bridger games, or Grand Strategy retain their original
-nine-, ten-, or twelve-game map. They remain valid history for the 72-hour schedule; new exports require all thirteen games
-and do not rewrite old files.
+Exports made before Hypercycle, the first two Bridger games, Grand Strategy, or ViperTCG retain their
+original nine-, ten-, twelve-, or thirteen-game map. They remain valid history for the 72-hour schedule;
+new exports require all fourteen games and do not rewrite old files.
 
 The normal deployment preserves the schedule and export history. To install only this job, upload
 `counter/export_counts.py`, `ops/gameslop-plays-export.cron`, and `ops/install-exports.sh` into a
@@ -201,4 +201,20 @@ The source repository is `bridger2500/grandstrat`. Its Vite build is served inde
 lifetime totals, weekly events, and the weekly tracking start remain intact. The collector fingerprints
 only the active public assets and reads their matching `release.json` deployment date. Adding this
 card or redeploying unchanged game files does not change the existing games' update dates. Historical
-twelve-game exports remain valid for the same 72-hour schedule; new exports include all thirteen games.
+twelve-game exports remain valid for the same 72-hour schedule.
+
+## ViperTCG
+
+- ViperTCG — https://vipertcg.gameslop.now — a single-player animal trading card game against
+  an AI opponent. Choose from 15 starter and structure decks, build a custom deck, or edit cards.
+  The game uses mouse controls; card and deck customizations are saved in this browser.
+
+The source repository is `adamxu1999-hub/ViperTCG`. Its plain JavaScript modules and CSS are
+served from `/opt/gameslop-static/vipertcg/current/site`; the local development server is not
+exposed. The independent checked-release workflow publishes successful main builds through
+its restricted deployment account. The portal does not deploy game code.
+
+The new `vipertcg` counter starts at zero without resetting any existing lifetime totals, weekly
+events, or the weekly tracking start. Its update date comes from the matching static release
+manifest, and unchanged content retains its original date. The exporter accepts all prior catalog
+sizes as history while requiring all fourteen game counters in new snapshots.

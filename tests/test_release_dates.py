@@ -137,7 +137,7 @@ class ReleaseDateTests(unittest.TestCase):
         reinstalled = collector.run(self.root, self.output, now=T3)
         self.assertEqual(reinstalled["lastUpdated"], first["lastUpdated"])
 
-    def test_grandstrat_addition_uses_its_release_date_without_changing_twelve_existing_dates(self):
+    def test_grandstrat_addition_uses_its_release_date_without_changing_existing_dates(self):
         original = collector.collect(self.root, now=T1)
         for key in ("lastUpdated", "fingerprints", "source"):
             original[key].pop("grandstrat")
@@ -154,6 +154,27 @@ class ReleaseDateTests(unittest.TestCase):
         self.assertEqual(changed["lastUpdated"]["grandstrat"], collector.iso(T3))
         for slug in set(collector.SLUGS) - {"grandstrat"}:
             self.assertEqual(changed["lastUpdated"][slug], first["lastUpdated"][slug])
+
+    def test_vipertcg_addition_uses_its_release_date_and_preserves_thirteen_existing_dates(self):
+        with patch.object(collector, "SLUGS", tuple(slug for slug in collector.SLUGS if slug != "vipertcg")):
+            original = collector.collect(self.root, now=T1)
+        self.assertEqual(len(original["lastUpdated"]), 13)
+        self.static_release("vipertcg", "v1", T2, "animal cards")
+        first = collector.collect(self.root, original, now=T3)
+        self.assertEqual(first["lastUpdated"]["vipertcg"], collector.iso(T2))
+        self.assertEqual(first["source"]["vipertcg"]["method"], "static-release")
+        for slug in original["lastUpdated"]:
+            self.assertEqual(first["lastUpdated"][slug], original["lastUpdated"][slug])
+            self.assertEqual(first["fingerprints"][slug], original["fingerprints"][slug])
+        self.static_release("vipertcg", "v2", T3, "animal cards")
+        self.assertEqual(collector.collect(self.root, first, now=T3), first)
+        self.static_release("vipertcg", "v3", T3, "updated animal cards")
+        changed = collector.collect(self.root, first, now=T3)
+        self.assertEqual(changed["lastUpdated"]["vipertcg"], collector.iso(T3))
+        for slug in original["lastUpdated"]:
+            self.assertEqual(changed["lastUpdated"][slug], original["lastUpdated"][slug])
+            self.assertEqual(changed["fingerprints"][slug], original["fingerprints"][slug])
+
     def test_hypercycle_first_release_stops_at_older_nine_game_manifest(self):
         original = self.root / "gameslop/releases/r0"
         shutil.rmtree(original / "games/hypercycle")
