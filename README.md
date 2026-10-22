@@ -205,14 +205,15 @@ twelve-game exports remain valid for the same 72-hour schedule.
 
 ## ViperTCG
 
-- ViperTCG — https://vipertcg.gameslop.now — a single-player animal trading card game against
-  an AI opponent. Choose from 15 starter and structure decks, build a custom deck, or edit cards.
+- ViperTCG — https://vipertcg.gameslop.now — an animal trading card game for one or two players.
+  Play the AI or invite a friend to a private room for a match or a shared draft. Build decks or edit cards.
   The game uses mouse controls; card and deck customizations are saved in this browser.
 
 The source repository is `adamxu1999-hub/ViperTCG`. Its plain JavaScript modules and CSS are
-served from `/opt/gameslop-static/vipertcg/current/site`; the local development server is not
-exposed. The independent checked-release workflow publishes successful main builds through
-its restricted deployment account. The portal does not deploy game code.
+served from `/opt/gameslop-static/vipertcg/current/site`. Friend rooms use the same-origin
+`/multiplayer` WebSocket endpoint and a private server runtime; they do not use PeerJS or
+browser-to-browser connections. The independent checked-release workflow publishes tested
+client and server builds through its restricted deployment account. The portal does not deploy game code.
 
 The new `vipertcg` counter starts at zero without resetting any existing lifetime totals, weekly
 events, or the weekly tracking start. Its update date comes from the matching static release
