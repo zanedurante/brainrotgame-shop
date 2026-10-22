@@ -100,7 +100,7 @@ test('shared play counts keep navigation native, totals truthful, and ranking cu
       assert.deepEqual(await page.locator('[data-game="grandstrat"] .meta span').allTextContents(), ['1–29 players', 'Grand strategy', 'Keyboard, mouse + touch']);
       assert.equal(await countText(page, 'grandstrat'), '0 plays');
       assert.equal(await page.locator('[data-game="vipertcg"] a.play').getAttribute('href'), 'https://vipertcg.gameslop.now');
-      assert.deepEqual(await page.locator('[data-game="vipertcg"] .meta span').allTextContents(), ['1 player', 'Solo vs AI', 'Mouse']);
+      assert.deepEqual(await page.locator('[data-game="vipertcg"] .meta span').allTextContents(), ['1–2 players', 'Solo + online', 'Mouse']);
       assert.equal(await countText(page, 'vipertcg'), '0 plays');
       assert.equal(await page.locator('#ranking-note').textContent(), '');
       assert.equal(await page.getByRole('combobox', { name: 'Sort games' }).inputValue(), 'plays');
