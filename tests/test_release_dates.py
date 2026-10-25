@@ -156,7 +156,7 @@ class ReleaseDateTests(unittest.TestCase):
             self.assertEqual(changed["lastUpdated"][slug], first["lastUpdated"][slug])
 
     def test_vipertcg_addition_uses_its_release_date_and_preserves_thirteen_existing_dates(self):
-        with patch.object(collector, "SLUGS", tuple(slug for slug in collector.SLUGS if slug != "vipertcg")):
+        with patch.object(collector, "SLUGS", tuple(slug for slug in collector.SLUGS if slug not in ("vipertcg", "battlelines"))):
             original = collector.collect(self.root, now=T1)
         self.assertEqual(len(original["lastUpdated"]), 13)
         self.static_release("vipertcg", "v1", T2, "animal cards")
@@ -171,6 +171,26 @@ class ReleaseDateTests(unittest.TestCase):
         self.static_release("vipertcg", "v3", T3, "updated animal cards")
         changed = collector.collect(self.root, first, now=T3)
         self.assertEqual(changed["lastUpdated"]["vipertcg"], collector.iso(T3))
+        for slug in original["lastUpdated"]:
+            self.assertEqual(changed["lastUpdated"][slug], original["lastUpdated"][slug])
+            self.assertEqual(changed["fingerprints"][slug], original["fingerprints"][slug])
+
+    def test_battlelines_addition_uses_its_release_date_and_preserves_fourteen_existing_dates(self):
+        with patch.object(collector, "SLUGS", tuple(slug for slug in collector.SLUGS if slug != "battlelines")):
+            original = collector.collect(self.root, now=T1)
+        self.assertEqual(len(original["lastUpdated"]), 14)
+        self.static_release("battlelines", "v1", T2, "Verdun battlefield")
+        first = collector.collect(self.root, original, now=T3)
+        self.assertEqual(first["lastUpdated"]["battlelines"], collector.iso(T2))
+        self.assertEqual(first["source"]["battlelines"]["method"], "static-release")
+        for slug in original["lastUpdated"]:
+            self.assertEqual(first["lastUpdated"][slug], original["lastUpdated"][slug])
+            self.assertEqual(first["fingerprints"][slug], original["fingerprints"][slug])
+        self.static_release("battlelines", "v2", T3, "Verdun battlefield")
+        self.assertEqual(collector.collect(self.root, first, now=T3), first)
+        self.static_release("battlelines", "v3", T3, "updated Verdun battlefield")
+        changed = collector.collect(self.root, first, now=T3)
+        self.assertEqual(changed["lastUpdated"]["battlelines"], collector.iso(T3))
         for slug in original["lastUpdated"]:
             self.assertEqual(changed["lastUpdated"][slug], original["lastUpdated"][slug])
             self.assertEqual(changed["fingerprints"][slug], original["fingerprints"][slug])
