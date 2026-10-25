@@ -16,8 +16,9 @@ except ImportError:  # Keep the same exporter testable on Windows development ma
     fcntl = None
     import msvcrt
 
-SLUGS = ("primordial", "primordial-tactics", "bagbrawl", "deadpoint", "headsup", "grove", "emberwild", "emberfell", "pelaglyph", "hypercycle", "litigation", "hollowtide", "grandstrat", "vipertcg")
-PRE_VIPERTCG_SLUGS = tuple(slug for slug in SLUGS if slug != "vipertcg")
+SLUGS = ("primordial", "primordial-tactics", "bagbrawl", "deadpoint", "headsup", "grove", "emberwild", "emberfell", "pelaglyph", "hypercycle", "litigation", "hollowtide", "grandstrat", "vipertcg", "battlelines")
+PRE_BATTLELINES_SLUGS = tuple(slug for slug in SLUGS if slug != "battlelines")
+PRE_VIPERTCG_SLUGS = tuple(slug for slug in PRE_BATTLELINES_SLUGS if slug != "vipertcg")
 PRE_GRANDSTRAT_SLUGS = tuple(slug for slug in PRE_VIPERTCG_SLUGS if slug != "grandstrat")
 PRE_BRIDGER_SLUGS = tuple(slug for slug in PRE_GRANDSTRAT_SLUGS if slug not in ("litigation", "hollowtide"))
 PRE_HYPERCYCLE_SLUGS = tuple(slug for slug in PRE_BRIDGER_SLUGS if slug != "hypercycle")
@@ -26,11 +27,11 @@ STAMP = "%Y%m%dT%H%M%S%fZ"
 
 
 def validate_counts(counts, *, historical=False):
-    # Retained nine-, ten-, twelve-, and thirteen-game exports preserve the schedule.
-    # New snapshots require all fourteen games; historical files are not rewritten.
+    # Retained nine-, ten-, twelve-, thirteen-, and fourteen-game exports preserve the schedule.
+    # New snapshots require all fifteen games; historical files are not rewritten.
     expected = SLUGS
     if historical and isinstance(counts, dict):
-        for catalog in (PRE_HYPERCYCLE_SLUGS, PRE_BRIDGER_SLUGS, PRE_GRANDSTRAT_SLUGS, PRE_VIPERTCG_SLUGS):
+        for catalog in (PRE_HYPERCYCLE_SLUGS, PRE_BRIDGER_SLUGS, PRE_GRANDSTRAT_SLUGS, PRE_VIPERTCG_SLUGS, PRE_BATTLELINES_SLUGS):
             if set(counts) == set(catalog):
                 expected = catalog
                 break

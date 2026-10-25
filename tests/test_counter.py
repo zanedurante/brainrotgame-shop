@@ -26,7 +26,7 @@ COUNTER = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(COUNTER)
 SLUGS = (
     "primordial", "primordial-tactics", "bagbrawl", "deadpoint", "headsup",
-    "grove", "emberwild", "emberfell", "pelaglyph", "hypercycle", "litigation", "hollowtide", "grandstrat", "vipertcg",
+    "grove", "emberwild", "emberfell", "pelaglyph", "hypercycle", "litigation", "hollowtide", "grandstrat", "vipertcg", "battlelines",
 )
 SEEDS = {slug: {"deadpoint": 225, "bagbrawl": 30, "primordial": 10}.get(slug, 0) for slug in SLUGS}
 ORIGIN = "https://gameslop.now"
@@ -314,7 +314,7 @@ class StoreMigrationAndWindowTests(unittest.TestCase):
         return COUNTER.PlayStore(self.db, clock_ms=lambda: self.now)
 
     def test_catalog_migration_preserves_ten_game_counts_events_and_tracking_start(self):
-        old_slugs = tuple(slug for slug in SLUGS if slug not in ("litigation", "hollowtide", "grandstrat", "vipertcg"))
+        old_slugs = tuple(slug for slug in SLUGS if slug not in ("litigation", "hollowtide", "grandstrat", "vipertcg", "battlelines"))
         with patch.object(COUNTER, "SLUGS", old_slugs), patch.object(COUNTER, "INITIAL_COUNTS", {slug: SEEDS[slug] for slug in old_slugs}):
             original = self.store()
             original.metrics("grove")
@@ -325,8 +325,8 @@ class StoreMigrationAndWindowTests(unittest.TestCase):
         self.now += 1000
         upgraded = self.store()
         after = upgraded.metrics()
-        self.assertEqual(after["counts"], dict(before["counts"], litigation=0, hollowtide=0, grandstrat=0, vipertcg=0))
-        self.assertEqual(after["weeklyCounts"], dict(before["weeklyCounts"], litigation=0, hollowtide=0, grandstrat=0, vipertcg=0))
+        self.assertEqual(after["counts"], dict(before["counts"], litigation=0, hollowtide=0, grandstrat=0, vipertcg=0, battlelines=0))
+        self.assertEqual(after["weeklyCounts"], dict(before["weeklyCounts"], litigation=0, hollowtide=0, grandstrat=0, vipertcg=0, battlelines=0))
         self.assertEqual(after["weeklyTrackingStartedAt"], before["weeklyTrackingStartedAt"])
         self.assertGreater(after["asOf"], before["asOf"])
         with closing(sqlite3.connect(self.db)) as connection:
@@ -334,8 +334,8 @@ class StoreMigrationAndWindowTests(unittest.TestCase):
             self.assertEqual(connection.execute("SELECT COUNT(*) FROM plays").fetchone()[0], len(SLUGS))
         upgraded.metrics("litigation")
         clicked = upgraded.metrics("hollowtide")
-        self.assertEqual(clicked["counts"], dict(before["counts"], litigation=1, hollowtide=1, grandstrat=0, vipertcg=0))
-        self.assertEqual(clicked["weeklyCounts"], dict(before["weeklyCounts"], litigation=1, hollowtide=1, grandstrat=0, vipertcg=0))
+        self.assertEqual(clicked["counts"], dict(before["counts"], litigation=1, hollowtide=1, grandstrat=0, vipertcg=0, battlelines=0))
+        self.assertEqual(clicked["weeklyCounts"], dict(before["weeklyCounts"], litigation=1, hollowtide=1, grandstrat=0, vipertcg=0, battlelines=0))
         self.assertEqual(self.store().counts(), clicked["counts"])
 
     def test_additive_migration_preserves_legacy_totals_and_does_not_invent_events(self):
@@ -382,7 +382,7 @@ class StoreMigrationAndWindowTests(unittest.TestCase):
         self.assertEqual(self.store().counts(), played["counts"])
 
     def test_vipertcg_addition_preserves_thirteen_game_totals_events_and_tracking_start(self):
-        old_slugs = tuple(slug for slug in SLUGS if slug != "vipertcg")
+        old_slugs = tuple(slug for slug in SLUGS if slug not in ("vipertcg", "battlelines"))
         self.assertEqual(len(old_slugs), 13)
         with patch.object(COUNTER, "SLUGS", old_slugs), patch.object(COUNTER, "INITIAL_COUNTS", {slug: SEEDS[slug] for slug in old_slugs}):
             original = self.store()
@@ -394,8 +394,8 @@ class StoreMigrationAndWindowTests(unittest.TestCase):
         self.now += 1000
         upgraded = self.store()
         added = upgraded.metrics()
-        self.assertEqual(added["counts"], dict(before["counts"], vipertcg=0))
-        self.assertEqual(added["weeklyCounts"], dict(before["weeklyCounts"], vipertcg=0))
+        self.assertEqual(added["counts"], dict(before["counts"], vipertcg=0, battlelines=0))
+        self.assertEqual(added["weeklyCounts"], dict(before["weeklyCounts"], vipertcg=0, battlelines=0))
         self.assertEqual(added["weeklyTrackingStartedAt"], before["weeklyTrackingStartedAt"])
         self.assertGreater(added["asOf"], before["asOf"])
         with closing(sqlite3.connect(self.db)) as connection:
@@ -403,6 +403,30 @@ class StoreMigrationAndWindowTests(unittest.TestCase):
         played = upgraded.metrics("vipertcg")
         self.assertEqual(played["counts"], dict(added["counts"], vipertcg=1))
         self.assertEqual(played["weeklyCounts"], dict(added["weeklyCounts"], vipertcg=1))
+        self.assertEqual(self.store().counts(), played["counts"])
+
+    def test_battlelines_addition_preserves_fourteen_game_totals_events_and_tracking_start(self):
+        old_slugs = tuple(slug for slug in SLUGS if slug != "battlelines")
+        self.assertEqual(len(old_slugs), 14)
+        with patch.object(COUNTER, "SLUGS", old_slugs), patch.object(COUNTER, "INITIAL_COUNTS", {slug: SEEDS[slug] for slug in old_slugs}):
+            original = self.store()
+            for slug in old_slugs:
+                original.metrics(slug)
+            before = original.metrics()
+        with closing(sqlite3.connect(self.db)) as connection:
+            old_events = connection.execute("SELECT slug, played_at_ms FROM play_events ORDER BY rowid").fetchall()
+        self.now += 1000
+        upgraded = self.store()
+        added = upgraded.metrics()
+        self.assertEqual(added["counts"], dict(before["counts"], battlelines=0))
+        self.assertEqual(added["weeklyCounts"], dict(before["weeklyCounts"], battlelines=0))
+        self.assertEqual(added["weeklyTrackingStartedAt"], before["weeklyTrackingStartedAt"])
+        self.assertGreater(added["asOf"], before["asOf"])
+        with closing(sqlite3.connect(self.db)) as connection:
+            self.assertEqual(connection.execute("SELECT slug, played_at_ms FROM play_events ORDER BY rowid").fetchall(), old_events)
+        played = upgraded.metrics("battlelines")
+        self.assertEqual(played["counts"], dict(added["counts"], battlelines=1))
+        self.assertEqual(played["weeklyCounts"], dict(added["weeklyCounts"], battlelines=1))
         self.assertEqual(self.store().counts(), played["counts"])
 
     def test_seven_day_boundary_expires_without_lowering_totals(self):
