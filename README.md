@@ -1,6 +1,6 @@
 # brainrotgame.shop · gameslop.now
 
-The front door for fifteen games, answering on two domains. Each card shows the shared total of Play
+The front door for sixteen games, answering on two domains. Each card shows the shared total of Play
 button clicks. The sort menu defaults to **Sort by number of plays**, with **Sort by newest update**
 and **Trending** (play clicks in the last seven days) also available. The header and title say
 whichever name the visitor typed; both domains use the same counters.
@@ -34,7 +34,7 @@ Both need SSH to the droplet as root with the owner's key; the address is in `op
 
 ## Shared play counts
 
-`GET /api/plays` returns all fifteen fixed game IDs in `counts` (lifetime plays), `weeklyCounts`
+`GET /api/plays` returns all sixteen fixed game IDs in `counts` (lifetime plays), `weeklyCounts`
 (plays in the rolling last seven days), and `lastUpdated` (UTC date strings or null). It also
 returns `weeklyTrackingStartedAt` and an increasing `asOf` timestamp so delayed responses cannot
 replace fresher rankings. `POST /api/plays/<game-id>` with an empty body adds one real play event
@@ -100,13 +100,13 @@ that a day-of-month `*/3` cron expression creates at month boundaries. After ser
 next check saves an overdue snapshot. The first export is created during installation.
 
 Snapshots are private, timestamped JSON files in **`/var/backups/gameslop/plays`**, containing a UTC
-export timestamp and a `counts` map for all fifteen games. The export reads a consistent SQLite
+export timestamp and a `counts` map for all sixteen games. The export reads a consistent SQLite
 snapshot, writes atomically, and never changes live counters. Old exports are retained. Failures
 leave the previous successful snapshot intact and are logged in `/var/log/gameslop-plays-export.log`.
 This folder is on the same server; it is not an off-server disaster recovery backup.
-Exports made before Hypercycle, the first two Bridger games, Grand Strategy, ViperTCG, or Battle Lines
-retain their original nine-, ten-, twelve-, thirteen-, or fourteen-game map. They remain valid history
-for the 72-hour schedule; new exports require all fifteen games and do not rewrite old files.
+Exports made before Hypercycle, the first two Bridger games, Grand Strategy, ViperTCG, Battle Lines, or Wowzaworka
+retain their original nine-, ten-, twelve-, thirteen-, fourteen-, or fifteen-game map. They remain valid history
+for the 72-hour schedule; new exports require all sixteen games and do not rewrite old files.
 
 The normal deployment preserves the schedule and export history. To install only this job, upload
 `counter/export_counts.py`, `ops/gameslop-plays-export.cron`, and `ops/install-exports.sh` into a
@@ -218,7 +218,7 @@ client and server builds through its restricted deployment account. The portal d
 The new `vipertcg` counter starts at zero without resetting any existing lifetime totals, weekly
 events, or the weekly tracking start. Its update date comes from the matching static release
 manifest, and unchanged content retains its original date. The exporter accepts all prior catalog
-sizes as history while requiring all fifteen game counters in new snapshots.
+sizes as history while requiring all sixteen game counters in new snapshots.
 
 ## Battle Lines: World at War
 
@@ -231,6 +231,21 @@ Its independent production build is served from `/opt/gameslop-static/battleline
 The portal does not deploy game code. Its counter starts at zero; adding it preserves the other
 fourteen games’ lifetime totals, weekly events, tracking start, update dates, and export history.
 The collector uses its matching release manifest for the initial update date and only advances
-that date when the game content changes. New exports include all fifteen counters; historical
+that date when the game content changes. New exports include all sixteen counters; historical
 fourteen-game exports retain their existing 72-hour schedule. Verify the game is live before
 publishing this catalog entry.
+
+## Wowzaworka
+
+- Wowzaworka — https://wowzaworka.gameslop.now — a solo neon arcade game with keyboard and touch controls. Collect wowzas, dash through grumps, and chain combos for a WOWZA! blast.
+
+This game is part of `zanedurante/gameslop-games`, served from
+`/opt/gameslop/current/games/wowzaworka`. Its shared lifetime and seven-day play
+counters start at zero. Adding it preserves the other fifteen games’ totals,
+recent events, tracking start, update dates, and export history.
+
+The catalog collector follows the monorepo release manifest for the first
+publication date and only changes it when Wowzaworka’s content changes. Sibling
+game releases do not make it appear newly updated. New exports include all
+sixteen counters, while historical fifteen-game exports retain the existing
+72-hour schedule. Verify the game is live before publishing the portal card.

@@ -156,7 +156,7 @@ class ReleaseDateTests(unittest.TestCase):
             self.assertEqual(changed["lastUpdated"][slug], first["lastUpdated"][slug])
 
     def test_vipertcg_addition_uses_its_release_date_and_preserves_thirteen_existing_dates(self):
-        with patch.object(collector, "SLUGS", tuple(slug for slug in collector.SLUGS if slug not in ("vipertcg", "battlelines"))):
+        with patch.object(collector, "SLUGS", tuple(slug for slug in collector.SLUGS if slug not in ("vipertcg", "battlelines", "wowzaworka"))):
             original = collector.collect(self.root, now=T1)
         self.assertEqual(len(original["lastUpdated"]), 13)
         self.static_release("vipertcg", "v1", T2, "animal cards")
@@ -176,7 +176,7 @@ class ReleaseDateTests(unittest.TestCase):
             self.assertEqual(changed["fingerprints"][slug], original["fingerprints"][slug])
 
     def test_battlelines_addition_uses_its_release_date_and_preserves_fourteen_existing_dates(self):
-        with patch.object(collector, "SLUGS", tuple(slug for slug in collector.SLUGS if slug != "battlelines")):
+        with patch.object(collector, "SLUGS", tuple(slug for slug in collector.SLUGS if slug not in ("battlelines", "wowzaworka"))):
             original = collector.collect(self.root, now=T1)
         self.assertEqual(len(original["lastUpdated"]), 14)
         self.static_release("battlelines", "v1", T2, "Verdun battlefield")
@@ -194,6 +194,36 @@ class ReleaseDateTests(unittest.TestCase):
         for slug in original["lastUpdated"]:
             self.assertEqual(changed["lastUpdated"][slug], original["lastUpdated"][slug])
             self.assertEqual(changed["fingerprints"][slug], original["fingerprints"][slug])
+
+    def test_wowzaworka_first_release_preserves_fifteen_dates_and_ignores_sibling_updates(self):
+        original = self.root / "gameslop/releases/r0"
+        shutil.rmtree(original / "games/wowzaworka")
+        manifest = json.loads((original / "manifest.json").read_text())
+        manifest["games"] = [game for game in manifest["games"] if game["slug"] != "wowzaworka"]
+        (original / "manifest.json").write_text(json.dumps(manifest))
+        self.activate("r0")
+        with patch.object(collector, "SLUGS", tuple(slug for slug in collector.SLUGS if slug != "wowzaworka")):
+            previous = collector.collect(self.root, now=T1)
+        self.assertEqual(len(previous["lastUpdated"]), 15)
+        self.release("r-wowzaworka", T2, "r0", {"wowzaworka": "neon arcade"})
+        self.activate("r-wowzaworka")
+        first = collector.collect(self.root, previous, now=T3)
+        self.assertEqual(first["lastUpdated"]["wowzaworka"], collector.iso(T2))
+        self.assertEqual(first["source"]["wowzaworka"]["method"], "earliest-retained-release")
+        self.assertEqual(first["source"]["wowzaworka"]["release"], "r-wowzaworka")
+        for slug in previous["lastUpdated"]:
+            self.assertEqual(first["lastUpdated"][slug], previous["lastUpdated"][slug])
+            self.assertEqual(first["fingerprints"][slug], previous["fingerprints"][slug])
+        self.release("r-sibling", T3, "r-wowzaworka", {"grove": "new grove"})
+        self.activate("r-sibling")
+        sibling = collector.collect(self.root, first, now=T3)
+        self.assertEqual(sibling["lastUpdated"]["wowzaworka"], collector.iso(T2))
+        self.release("r-wowzaworka-update", T3, "r-sibling", {"wowzaworka": "updated neon arcade"})
+        self.activate("r-wowzaworka-update")
+        changed = collector.collect(self.root, sibling, now=T3)
+        self.assertEqual(changed["lastUpdated"]["wowzaworka"], collector.iso(T3))
+        for slug in previous["lastUpdated"]:
+            self.assertEqual(changed["lastUpdated"][slug], sibling["lastUpdated"][slug])
 
     def test_hypercycle_first_release_stops_at_older_nine_game_manifest(self):
         original = self.root / "gameslop/releases/r0"
