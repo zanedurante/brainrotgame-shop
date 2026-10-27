@@ -281,7 +281,7 @@ class CounterTests(unittest.TestCase):
         assets.mkdir(parents=True)
         (site / "index.html").write_text("<!doctype html><title>Test portal</title>", encoding="utf-8")
         (assets / "portal.js").write_text("console.log('portal');", encoding="utf-8")
-        for relative in ["plays.sqlite3", "server.py", ".env", "assets/secrets.sqlite3", "assets/hidden.py"]:
+        for relative in ["plays.sqlite3", "server.py", ".env", "notes.txt", "private.html", "assets/secrets.sqlite3", "assets/hidden.py"]:
             (site / relative).write_text("private-marker", encoding="utf-8")
         self.server.close()
         self.server = RunningServer(self.db, site)
@@ -289,7 +289,7 @@ class CounterTests(unittest.TestCase):
             self.assertEqual(self.server.request(path=path)[0], 200)
         self.assertIn("javascript", self.server.request(path="/assets/portal.js")[1]["Content-Type"])
         self.assertEqual(self.server.request("HEAD", "/")[2], b"")
-        for path in ["/plays.sqlite3", "/server.py", "/.env", "/assets/secrets.sqlite3", "/assets/hidden.py", "/assets/", "/../index.html", "/%2e%2e/index.html", "/assets/%2e%2e/server.py", "/assets/..%5cserver.py", "/%00index.html", "/%zz"]:
+        for path in ["/plays.sqlite3", "/server.py", "/.env", "/notes.txt", "/private.html", "/assets/secrets.sqlite3", "/assets/hidden.py", "/assets/", "/../index.html", "/%2e%2e/index.html", "/assets/%2e%2e/server.py", "/assets/..%5cserver.py", "/%00index.html", "/%zz"]:
             status, headers, body = self.server.request(path=path)
             self.assertIn(status, [400, 404], path)
             self.assertNotIn(b"private-marker", body)
@@ -300,6 +300,42 @@ class CounterTests(unittest.TestCase):
             pass
         else:
             self.assertEqual(self.server.request(path="/assets/linked.js")[0], 404)
+        self.assertEqual(self.counts(), SEEDS)
+
+    def test_public_information_files_have_exact_content_and_types(self):
+        site = self.root / "site"
+        site.mkdir()
+        (site / "index.html").write_text("<!doctype html><title>Test portal</title>", encoding="utf-8")
+        fixtures = {
+            "ads.txt": ("google.com, pub-123, DIRECT, test\n", "text/plain"),
+            "robots.txt": ("User-agent: *\nAllow: /\n", "text/plain"),
+            "privacy.html": ("<!doctype html><title>Privacy</title><p>Privacy details.</p>", "text/html"),
+            "about.html": ("<!doctype html><title>About</title><p>About the portal.</p>", "text/html"),
+        }
+        for name, (content, _) in fixtures.items():
+            (site / name).write_bytes(content.encode("utf-8"))
+        self.server.close()
+        self.server = RunningServer(self.db, site)
+        for name, (content, media_type) in fixtures.items():
+            for suffix in ("", "?check=1"):
+                with self.subTest(path=name + suffix):
+                    status, headers, body = self.server.request(path="/" + name + suffix)
+                    self.assertEqual(status, 200)
+                    self.assertEqual(headers["Content-Type"], media_type + "; charset=utf-8")
+                    self.assertEqual(body, content.encode("utf-8"))
+                    status, headers, body = self.server.request("HEAD", "/" + name + suffix)
+                    self.assertEqual(status, 200)
+                    self.assertEqual(body, b"")
+                    self.assertEqual(int(headers["Content-Length"]), len(content.encode("utf-8")))
+            self.assertEqual(self.server.request(path="/" + name + "/")[0], 404)
+        (site / "ads.txt").unlink()
+        self.assertEqual(self.server.request(path="/ads.txt")[0], 404)
+        try:
+            (site / "ads.txt").symlink_to(site / "privacy.html")
+        except (OSError, NotImplementedError):
+            pass
+        else:
+            self.assertEqual(self.server.request(path="/ads.txt")[0], 404)
         self.assertEqual(self.counts(), SEEDS)
 
 

@@ -27,6 +27,7 @@ STATIC_EXTENSIONS = frozenset((
     ".css", ".js", ".mjs", ".svg", ".png", ".jpg", ".jpeg", ".webp",
     ".avif", ".gif", ".ico", ".woff", ".woff2", ".ttf", ".otf",
 ))
+PUBLIC_ROOT_FILES = frozenset(("index.html", "ads.txt", "robots.txt", "privacy.html", "about.html"))
 MAX_BODY = 4096
 WEEK_MS = 7 * 24 * 60 * 60 * 1000
 RETENTION_MS = 8 * 24 * 60 * 60 * 1000
@@ -358,7 +359,7 @@ class CounterHandler(BaseHTTPRequestHandler):
             self.reject(404, "Not found")
             return
         relative = "index.html" if path in ("/", "/index.html") else path.lstrip("/")
-        if relative != "index.html":
+        if relative not in PUBLIC_ROOT_FILES:
             parts = relative.split("/")
             if (not relative.startswith("assets/") or any(part.startswith(".") or not part for part in parts)
                     or Path(relative).suffix.lower() not in STATIC_EXTENSIONS):
@@ -378,7 +379,10 @@ class CounterHandler(BaseHTTPRequestHandler):
         except OSError:
             self.reject(404, "Not found")
             return
-        content_type = {".js": "text/javascript", ".mjs": "text/javascript"}.get(resolved.suffix.lower()) or mimetypes.guess_type(str(resolved))[0] or "application/octet-stream"
+        content_type = {
+            ".html": "text/html; charset=utf-8", ".txt": "text/plain; charset=utf-8",
+            ".js": "text/javascript", ".mjs": "text/javascript",
+        }.get(resolved.suffix.lower()) or mimetypes.guess_type(str(resolved))[0] or "application/octet-stream"
         self.headers_for(200, content_type, len(content))
         if self.command != "HEAD":
             try:
