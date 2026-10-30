@@ -7,7 +7,7 @@
   "scripts": {
     "serve": "python counter/server.py --port 3011 --site-root .",
     "test": "python -m unittest discover -s tests -p test_*.py -v",
-    "test:browser": "node --test tests/test-play-counts.mjs",
+    "test:browser": "node --test tests/test-play-counts.mjs tests/test-sidebar-ads.mjs",
     "test:integration": "node tests/test-integration.mjs",
     "deploy": "bash scripts/deploy.sh",
     "provision": "bash ops/provision.sh"

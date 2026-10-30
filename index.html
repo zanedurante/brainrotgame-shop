@@ -22,6 +22,18 @@
   html, body { margin: 0; background: var(--bg); color: var(--ink); font: 16px/1.55 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
   a { color: inherit; }
   .wrap { max-width: 1040px; margin: 0 auto; padding: 0 16px; }
+  .portal-layout { max-width: 1040px; margin: 0 auto; }
+  .ad-rail, .sidebar-ad-unit { display: none; }
+  .ad-rail[hidden] { display: none !important; }
+  .ad-label { margin: 0 0 10px; color: var(--muted); font-size: 11px; letter-spacing: .04em; text-align: center; }
+  @media (min-width: 1536px) and (hover: hover) and (pointer: fine) {
+    .has-sidebar-ads .portal-layout { max-width: 1488px; display: grid; grid-template-columns: 160px minmax(0, 1040px) 160px; gap: 48px; padding: 0 16px; align-items: start; }
+    .has-sidebar-ads .wrap { width: 100%; min-width: 0; grid-column: 2; grid-row: 1; }
+    .has-sidebar-ads .ad-rail { display: block; padding-top: 64px; min-width: 0; }
+    .has-sidebar-ads [data-sidebar-ad="left"] { grid-column: 1; grid-row: 1; }
+    .has-sidebar-ads [data-sidebar-ad="right"] { grid-column: 3; grid-row: 1; }
+    .sidebar-ad-unit { display: block; width: 160px; height: 600px; }
+  }
   header { padding: 64px 0 28px; }
   .logo { display: flex; align-items: center; gap: 14px; text-decoration: none; }
   .logo .mark { width: 44px; height: 44px; border-radius: 12px; background: #000; display: grid; place-items: center; box-shadow: 0 0 0 1px var(--line), 0 10px 30px rgba(0,0,0,.5); }
@@ -63,6 +75,11 @@
 </style>
 </head>
 <body>
+<div class="portal-layout">
+  <aside class="ad-rail" data-sidebar-ad="left" aria-label="Advertisement" hidden>
+    <p class="ad-label">Advertisement</p>
+    <ins class="adsbygoogle sidebar-ad-unit" data-ad-client="ca-pub-3292344753796518" data-ad-slot="7574873616"></ins>
+  </aside>
 <div class="wrap">
   <header>
     <a class="logo" href="/"><span class="mark"><i></i></span><b id="brand">brainrot<span>game</span>.shop</b></a>
@@ -400,6 +417,11 @@
     <a href="/privacy.html">Privacy</a>
   </footer>
 </div>
+  <aside class="ad-rail" data-sidebar-ad="right" aria-label="Advertisement" hidden>
+    <p class="ad-label">Advertisement</p>
+    <ins class="adsbygoogle sidebar-ad-unit" data-ad-client="ca-pub-3292344753796518" data-ad-slot="9982591281"></ins>
+  </aside>
+</div>
 <script>
   document.getElementById('y').textContent = new Date().getFullYear();
   // The same page answers on more than one domain. Say the name of the one the visitor typed.
@@ -412,5 +434,6 @@
   }
 </script>
 <script src="/assets/play-counts.js" defer></script>
+<script src="/assets/sidebar-ads.js" defer></script>
 </body>
 </html>

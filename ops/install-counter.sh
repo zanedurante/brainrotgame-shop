@@ -4,7 +4,7 @@ set -euo pipefail
 stage=${1:?release directory required}
 [[ $stage =~ ^/tmp/gameslop-portal\.[A-Za-z0-9]+$ && -d $stage ]] || exit 2
 [[ $(id -u) == 0 ]] || exit 2
-public_files=(assets/play-counts.js ads.txt robots.txt privacy.html about.html index.html)
+public_files=(assets/play-counts.js assets/sidebar-ads.js ads.txt robots.txt privacy.html about.html index.html)
 for file in "${public_files[@]}" counter/server.py ops/gameslop-plays.service ops/brainrotgame.caddy; do
   [[ -f $stage/$file && ! -L $stage/$file ]] || { echo "Missing $file"; exit 2; }
 done

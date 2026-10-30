@@ -10,7 +10,7 @@ HOST="${ENV_HOST:-$DEPLOY_HOST}"
 PUBLIC="${ENV_PUBLIC:-$PUBLIC_HOST}"
 archive=$(mktemp)
 trap 'rm -f "$archive"' EXIT
-tar -czf "$archive" index.html assets/play-counts.js ads.txt robots.txt privacy.html about.html counter/server.py counter/export_counts.py counter/release_dates.py ops/gameslop-plays.service ops/brainrotgame.caddy ops/install-counter.sh ops/gameslop-plays-export.cron ops/install-exports.sh ops/gameslop-catalog.cron ops/install-catalog.sh
+tar -czf "$archive" index.html assets/play-counts.js assets/sidebar-ads.js ads.txt robots.txt privacy.html about.html counter/server.py counter/export_counts.py counter/release_dates.py ops/gameslop-plays.service ops/brainrotgame.caddy ops/install-counter.sh ops/gameslop-plays-export.cron ops/install-exports.sh ops/gameslop-catalog.cron ops/install-catalog.sh
 stage=$(ssh "$HOST" 'mktemp -d /tmp/gameslop-portal.XXXXXXXXXX')
 [[ $stage =~ ^/tmp/gameslop-portal\.[A-Za-z0-9]+$ ]] || exit 2
 scp "$archive" "$HOST:$stage/release.tar.gz"
