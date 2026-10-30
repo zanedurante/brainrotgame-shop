@@ -21,6 +21,7 @@ const updatedRanking = ['hypercycle', 'pelaglyph', 'emberwild', 'primordial', 'p
 const trendingRanking = ['primordial', 'bagbrawl', 'deadpoint', 'primordial-tactics', 'headsup', 'grove', 'emberwild', 'emberfell', 'pelaglyph', 'hypercycle', 'litigation', 'hollowtide', 'grandstrat', 'vipertcg', 'battlelines', 'wowzaworka'];
 const html = await readFile(new URL('../index.html', import.meta.url));
 const script = await readFile(new URL('../assets/play-counts.js', import.meta.url));
+const sidebarAdsScript = await readFile(new URL('../assets/sidebar-ads.js', import.meta.url));
 let state;
 const reset = () => { state = { counts: seeds(), weeklyCounts: weeklySeeds(), lastUpdated: updateSeeds(), weeklyTrackingStartedAt: new Date(epoch - 2 * day).toISOString(), asOf: epoch, legacy: false, requests: [], getStatus: 200, postStatus: 200, holdGet: false, holdPost: false, pendingGet: [], pendingPost: [] }; };
 const snapshot = state => JSON.parse(JSON.stringify(state.legacy ? { counts: state.counts } : { counts: state.counts, weeklyCounts: state.weeklyCounts, lastUpdated: state.lastUpdated, weeklyTrackingStartedAt: state.weeklyTrackingStartedAt, asOf: ++state.asOf }));
@@ -30,6 +31,7 @@ const server = createServer(async (request, response) => {
   const requestState = state;
   if (request.url === '/') { response.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' }); response.end(html); return; }
   if (request.url === '/assets/play-counts.js') { response.writeHead(200, { 'Content-Type': 'text/javascript' }); response.end(script); return; }
+  if (request.url === '/assets/sidebar-ads.js') { response.writeHead(200, { 'Content-Type': 'text/javascript' }); response.end(sidebarAdsScript); return; }
   if (request.url.startsWith('/opened/')) { response.writeHead(200, { 'Content-Type': 'text/html' }); response.end('<!doctype html><title>Opened game</title><p>The game opened.</p>'); return; }
   const game = /^\/api\/plays\/([a-z-]+)$/.exec(request.url ?? '');
   if (request.url === '/api/plays' && request.method === 'GET') {

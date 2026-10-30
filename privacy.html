@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Privacy · Game Slop Now</title>
-<meta name="description" content="How the Game Slop Now portal handles play counts, browser preferences and advertising preparation.">
+<meta name="description" content="How the Game Slop Now portal handles play counts, browser preferences, Google advertising and privacy choices.">
 <link rel="canonical" href="https://gameslop.now/privacy.html">
 <style>
   :root { color-scheme: dark; }
@@ -30,15 +30,21 @@
     <p>This page covers the game directory and shared play counters at gameslop.now and brainrotgame.shop. The portal does not require an account. Individual games can have different save, room and multiplayer features; this page does not describe every game's data handling.</p>
     <h2>Shared play counts</h2>
     <p>When you activate a Play button, the portal sends the selected game's identifier to our counter service. The service records that game and the time of the click. These records support shared lifetime totals and the Trending ranking for the last seven days.</p>
-    <p>The counter database does not store your IP address, browser user-agent, email address, a cookie or a visitor identifier. Counts measure Play-button clicks, not unique people or completed game sessions. The page also requests current totals and update dates so the rankings stay current.</p>
+    <p>The counter database does not store your IP address, browser user-agent, email address, a cookie or a visitor identifier. Counts measure Play-button clicks, not unique people or completed game sessions. The page also requests current totals and update dates so the rankings stay current. These limits describe our play-counter service; Google's advertising services are separate and are described below.</p>
     <h2>Browser preferences</h2>
-    <p>The portal stores your chosen sort order in your browser's session storage for the current tab. This preference is not sent to our server. The portal does not currently load an advertising or analytics script.</p>
+    <p>The portal stores your chosen sort order in your browser's session storage for the current tab. This preference is not sent to our server. We do not use a separate audience-analytics script on the portal.</p>
     <h2>Retention and hosting</h2>
     <p>Click records older than eight days are eligible for cleanup when the counter service starts or records a new click. Cleanup is not a guaranteed eight-day deletion deadline, and older records may remain in operational backups. Aggregate totals and periodic aggregate JSON exports are retained.</p>
     <p>Like other websites, our hosting and network infrastructure receive connection and request information needed to deliver pages, including IP addresses and request headers. The counter application's request logs are disabled. Infrastructure logs and operational backups are separate from the counter database.</p>
-    <h2>Advertising preparation</h2>
-    <p>We are preparing Google AdSense for this portal. Advertising is not currently enabled. The ownership-verification tag and ads.txt declaration do not load Google's advertising script.</p>
-    <p>Before advertising is enabled, this page will be updated to identify the advertising data use and available privacy choices, and the applicable consent setup will be completed. Google explains its advertising technologies at <a href="https://policies.google.com/technologies/ads">Google's advertising privacy information</a>.</p>
+    <h2>Google advertising</h2>
+    <p>The gameslop.now homepage is configured for two sidebar advertisements through Google AdSense on wide desktop screens with a mouse or similar pointing device. Whether ads appear depends on Google's site review, available ads and your privacy choices. The advertising setup does not start on narrow or mobile layouts, and the sidebars are hidden if you make the window narrower. This setup is not included on brainrotgame.shop, this privacy page, the About page or individual game websites.</p>
+    <p>When the advertising setup runs, it loads Google's advertising and privacy-message services. Google and its advertising partners may collect or receive information such as your IP address, browser and device information, identifiers, ad interactions, cookies and information in local storage. They use this information to select and deliver ads, measure advertising, limit repeated ads, and detect fraud and abuse.</p>
+    <p>Depending on your consent and other applicable choices, Google and its partners may use advertising cookies and identifiers to personalize ads based on earlier visits to this website or other websites. Ads that are not personalized can still involve cookies or other storage for functions such as reporting and fraud prevention. The available ad-serving mode depends on your choices and Google's settings.</p>
+    <p>Google and its partners handle advertising information under their own policies. Details about participating advertising partners and their purposes are available in Google's on-page privacy message where it applies. Read <a href="https://policies.google.com/technologies/ads">Google's advertising privacy information</a> and <a href="https://policies.google.com/technologies/partner-sites">how Google uses information from sites that use its services</a>.</p>
+    <h2>Your advertising privacy choices</h2>
+    <p>Where applicable, Google's privacy message lets you consent, decline or manage your advertising choices. When these services are active on the <a href="https://gameslop.now/">gameslop.now homepage</a>, look near the bottom of the page for Google's privacy and cookie settings link to review your European consent choice, or its <em>Do Not Sell or Share My Personal Information</em> link for supported US states. The controls shown depend on your location and the applicable message.</p>
+    <p>You can also manage Google's personalized advertising in <a href="https://myadcenter.google.com/">My Ad Center</a> and find participating companies' browser-based advertising opt-outs through <a href="https://optout.aboutads.info/">YourAdChoices</a>. These tools have their own scope and do not replace the choices in a site's privacy message. Your browser can also block or clear cookies and site storage; clearing storage may remove saved preferences and cause a consent message to appear again.</p>
+    <p>This privacy page does not load advertising or consent-message scripts. Return to the <a href="https://gameslop.now/">gameslop.now homepage</a> on a supported desktop layout to use the on-page advertising controls when those services are active.</p>
     <h2>When you open a game</h2>
     <p>Play buttons take you to the selected game's website. A game may store progress in your browser or use a server to manage rooms and multiplayer sessions. Check that game's information and controls for its specific behavior. Clearing the portal's sort preference does not delete a game's saved progress.</p>
     <h2>Contact and support messages</h2>

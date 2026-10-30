@@ -32,7 +32,7 @@ are needed. Python 3.10+ is required; production uses Python 3.12.
 
 Both need SSH to the droplet as root with the owner's key; the address is in `ops/server.env`.
 
-## AdSense preparation
+## Desktop sidebar advertising
 
 The homepage contains the ownership meta tag for publisher `ca-pub-3292344753796518`.
 `/ads.txt` declares `google.com, pub-3292344753796518, DIRECT, f08c47fec0942fa0`, and
@@ -41,23 +41,56 @@ pages linked from the homepage. Both portal domains serve these same files. The 
 `support@gameslop.now` as the public contact and explains support-email forwarding through Porkbun
 to Gmail.
 
-**Advertising is not enabled by this change.** There is no Google advertising script, ad slot,
-or consent-message script. The meta tag is one of Google's supported ownership-verification
-methods, and publishing ads.txt does not request ads.
+The homepage uses two manual AdSense display units: left `7574873616` and right `9982591281`,
+both belonging to publisher `ca-pub-3292344753796518`. Each has a 160 × 600 pixel placement in a
+static sidebar, separate from the game cards and Play controls. **Auto ads and Auto optimize are off**
+in AdSense; keep them off so the account does not add other placements or alter these units.
 
-Before enabling ads, check gameslop.now's status in AdSense, resolve any review issues,
-and update the privacy page to reflect the actual advertising configuration. Configure the
-appropriate certified consent message in AdSense Privacy & messaging. The requested placement is
-one manual display ad in each sidebar on wide screens, clear of Play controls, with Auto ads off
-and no ads on narrow or mobile screens. Scope advertising to gameslop.now; do not load ad code on the alias,
-privacy page or game subdomains. Google approval and account setup cannot be established from the
-ownership-verification check alone.
+`assets/sidebar-ads.js` loads the Google SDK and initializes the units only on the exact production
+HTTPS homepage at `gameslop.now` (path `/` or `/index.html`), with a viewport at least 1536 CSS pixels
+wide, hover support and a fine pointer.
+Narrow/touch layouts, the alias domain, information pages, game subdomains and local previews do not
+initialize this advertising setup. Do not add a global Google SDK tag to the shared pages: that would
+bypass the placement scope and load advertising services on the privacy disclosure page.
+The SDK loads asynchronously once; visible units are initialized once each after it loads. Resizing
+does not refresh ads. Load errors and unfilled units hide their rails while the game catalog remains
+centered. The deployment and installer include `assets/sidebar-ads.js` with the portal assets.
+
+Google's published Privacy & messaging configuration supplies the consent interface through the
+AdSense SDK. There is no separate CMP script, custom consent gate or custom privacy-link API.
+The European message uses English with Consent, Manage options and Do not consent choices;
+consent-message optimization is off. The published US state message covers all current and future
+supported states. Retain Google's generated footer controls for European consent changes and the
+US Do Not Sell or Share link where applicable. Google handles consent signals and eligible ad modes;
+do not treat a declined choice as permission to request unrestricted non-personalized ads.
+
+As checked on October 30, 2026, the AdSense site status is **Getting ready**. Ownership verification,
+working code and published consent messages do not establish approval or guarantee a filled ad.
+Check **Sites → gameslop.now** for **Ready** and any required account tasks, and use the Policy center
+for issues. Empty placements while review is pending are not evidence that the browser setup failed.
+
+The privacy page distinguishes the portal's anonymous play counters from Google's separate
+advertising data use and links to Google's information, My Ad Center and YourAdChoices. It loads
+neither the advertising SDK nor a consent-message script. Where the ad setup is active, visitors use
+Google's generated controls on the homepage to review applicable choices.
 
 Official references: [site connection](https://support.google.com/adsense/answer/7584263?hl=en),
 [site status](https://support.google.com/adsense/answer/12170222?hl=en),
 [ads.txt](https://support.google.com/adsense/answer/12171612?hl=en),
-[required privacy disclosure](https://support.google.com/adsense/answer/1348695?hl=en), and
-[consent requirements](https://support.google.com/adsense/answer/13554116?hl=en).
+[required privacy disclosure](https://support.google.com/adsense/answer/1348695?hl=en),
+[consent requirements](https://support.google.com/adsense/answer/13554116?hl=en),
+[responsive ad modifications](https://support.google.com/adsense/answer/9183363?hl=en),
+[Google CMP deployment](https://developers.google.com/funding-choices/fc-api-docs), and
+[US state messages](https://support.google.com/adsense/answer/10960771?hl=en).
+
+Validate the sidebar scope and failure behavior with `node --test tests/test-sidebar-ads.mjs`.
+Use `PORTAL_BROWSER_CHANNEL=chrome` if running with installed Chrome. The fixtures intercept Google's
+SDK and ad responses rather than requesting real ads. Run `npm run test:browser` for portal
+interactions and sidebar checks, and `npm run test:integration` for the browser-to-counter checks. After publishing a
+consent message, its preview can be checked on the production homepage with
+`?fc=alwaysshow&fctype=gdpr` or `?fc=alwaysshow&fctype=ccpa` in a clean browser context. These preview
+flags ignore location and can save test privacy choices; they are not public navigation links.
+Verify desktop layout, narrow-screen suppression and the privacy page without clicking live ads.
 
 ## Shared play counts
 
