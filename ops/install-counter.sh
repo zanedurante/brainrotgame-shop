@@ -4,7 +4,8 @@ set -euo pipefail
 stage=${1:?release directory required}
 [[ $stage =~ ^/tmp/gameslop-portal\.[A-Za-z0-9]+$ && -d $stage ]] || exit 2
 [[ $(id -u) == 0 ]] || exit 2
-for file in index.html assets/play-counts.js counter/server.py ops/gameslop-plays.service ops/brainrotgame.caddy; do
+public_files=(assets/play-counts.js ads.txt robots.txt privacy.html about.html index.html)
+for file in "${public_files[@]}" counter/server.py ops/gameslop-plays.service ops/brainrotgame.caddy; do
   [[ -f $stage/$file && ! -L $stage/$file ]] || { echo "Missing $file"; exit 2; }
 done
 exec 9>/opt/brainrotgame/.portal-deploy.lock
@@ -35,6 +36,15 @@ rollback() {
   trap - ERR
   set +e
   echo "Deployment failed; restoring portal from $backup" >&2
+  # Restoring a directory does not remove files introduced by this release.
+  # Only remove known public files (and their staging files) absent from the backup.
+  for file in "${public_files[@]}"; do
+    for candidate in "$file" "$file.next"; do
+      if [[ ! -e $backup/site/$candidate && ! -L $backup/site/$candidate ]]; then
+        rm -f -- "/opt/brainrotgame/site/$candidate"
+      fi
+    done
+  done
   cp -a "$backup/site/." /opt/brainrotgame/site/
   cp -a "$backup/brainrotgame.caddy" /etc/caddy/brainrotgame.caddy
   systemctl stop gameslop-plays || true
@@ -85,13 +95,24 @@ if ! cmp -s "$stage/ops/brainrotgame.caddy" /etc/caddy/brainrotgame.caddy; then
   systemctl reload caddy
 fi
 install -d -o caddy -g caddy -m 0755 /opt/brainrotgame/site/assets
-install -o caddy -g caddy -m 0644 "$stage/assets/play-counts.js" /opt/brainrotgame/site/assets/play-counts.js.next
-mv -f /opt/brainrotgame/site/assets/play-counts.js.next /opt/brainrotgame/site/assets/play-counts.js
-install -o caddy -g caddy -m 0644 "$stage/index.html" /opt/brainrotgame/site/index.html.next
-mv -f /opt/brainrotgame/site/index.html.next /opt/brainrotgame/site/index.html
+for file in "${public_files[@]}"; do
+  install -o caddy -g caddy -m 0644 "$stage/$file" "/opt/brainrotgame/site/$file.next"
+  mv -f -- "/opt/brainrotgame/site/$file.next" "/opt/brainrotgame/site/$file"
+done
 curl --fail --silent --show-error --connect-timeout 5 --max-time 20 https://gameslop.now/api/plays > "$backup/public-counts.json"
-curl --fail --silent --show-error --connect-timeout 5 --max-time 20 https://gameslop.now/ | cmp - "$stage/index.html"
-curl --fail --silent --show-error --connect-timeout 5 --max-time 20 https://gameslop.now/assets/play-counts.js | cmp - "$stage/assets/play-counts.js"
+for file in "${public_files[@]}"; do
+  public_path="/$file"
+  [[ $file != index.html ]] || public_path=/
+  verified="$backup/public-${file//\//_}"
+  content_type=$(curl --fail --silent --show-error --connect-timeout 5 --max-time 20 \
+    --output "$verified" --write-out '%{content_type}' "https://gameslop.now$public_path")
+  content_type=${content_type%%;*}
+  case "$file:${content_type,,}" in
+    *.html:text/html|*.txt:text/plain|*.js:text/javascript|*.js:application/javascript) ;;
+    *) echo "Unexpected Content-Type for $public_path: $content_type" >&2; false ;;
+  esac
+  cmp "$verified" "$stage/$file"
+done
 systemctl is-active --quiet gameslop-plays
 trap - ERR
 echo "Portal deployed; backup $backup"

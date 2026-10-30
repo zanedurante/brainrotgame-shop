@@ -32,6 +32,33 @@ are needed. Python 3.10+ is required; production uses Python 3.12.
 
 Both need SSH to the droplet as root with the owner's key; the address is in `ops/server.env`.
 
+## AdSense preparation
+
+The homepage contains the ownership meta tag for publisher `ca-pub-3292344753796518`.
+`/ads.txt` declares `google.com, pub-3292344753796518, DIRECT, f08c47fec0942fa0`, and
+`/robots.txt` is a real plain-text file. `/about.html` and `/privacy.html` are public information
+pages linked from the homepage. Both portal domains serve these same files. The privacy page lists
+`support@gameslop.now` as the public contact and explains support-email forwarding through Porkbun
+to Gmail.
+
+**Advertising is not enabled by this change.** There is no Google advertising script, ad slot,
+or consent-message script. The meta tag is one of Google's supported ownership-verification
+methods, and publishing ads.txt does not request ads.
+
+Before enabling ads, check gameslop.now's status in AdSense, resolve any review issues,
+and update the privacy page to reflect the actual advertising configuration. Configure the
+appropriate certified consent message in AdSense Privacy & messaging. The requested placement is
+one manual display ad in each sidebar on wide screens, clear of Play controls, with Auto ads off
+and no ads on narrow or mobile screens. Scope advertising to gameslop.now; do not load ad code on the alias,
+privacy page or game subdomains. Google approval and account setup cannot be established from the
+ownership-verification check alone.
+
+Official references: [site connection](https://support.google.com/adsense/answer/7584263?hl=en),
+[site status](https://support.google.com/adsense/answer/12170222?hl=en),
+[ads.txt](https://support.google.com/adsense/answer/12171612?hl=en),
+[required privacy disclosure](https://support.google.com/adsense/answer/1348695?hl=en), and
+[consent requirements](https://support.google.com/adsense/answer/13554116?hl=en).
+
 ## Shared play counts
 
 `GET /api/plays` returns all sixteen fixed game IDs in `counts` (lifetime plays), `weeklyCounts`
@@ -59,8 +86,10 @@ Trending counts only timestamped clicks in the interval `(now - 7 days, now]`. E
 seeded plays have no click dates, so they are not backfilled into Trending. The interface shows
 when weekly tracking began while less than a full week has been collected. Each increment updates
 the lifetime count and records its timestamp in one SQLite transaction. Only the game ID and time
-are stored; no visitor identity is collected. Old events are pruned after eight days without
-changing lifetime totals. Weekly totals can decrease as clicks leave the seven-day window.
+are stored; no visitor identity is collected. Events older than eight days are pruned at service
+startup and subsequent click writes without changing lifetime totals. This is not a guaranteed
+deletion deadline, and operational database backups can retain older events. Weekly totals can
+decrease as clicks leave the seven-day window.
 
 ### Game update dates
 
