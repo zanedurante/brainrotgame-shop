@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Record content changes in the seventeen fixed production games; never run game code.
+"""Record content changes in the eighteen fixed production games; never run game code.
 
 Current files are hashed on each run. Only first observations consult the bounded
 game release manifest chain. Dates survive sibling releases and collector
@@ -19,10 +19,10 @@ import sys
 import tempfile
 
 SLUGS = ("primordial", "primordial-tactics", "bagbrawl", "deadpoint", "headsup",
-         "grove", "emberwild", "emberfell", "pelaglyph", "hypercycle", "litigation", "hollowtide", "grandstrat", "vipertcg", "battlelines", "wowzaworka", "scramble")
+         "grove", "emberwild", "emberfell", "pelaglyph", "hypercycle", "litigation", "hollowtide", "grandstrat", "vipertcg", "battlelines", "wowzaworka", "scramble", "elderhold")
 BUNDLE = {"primordial": "primordial-action", "primordial-tactics": "primordial",
           "grove": "grove", "emberwild": "emberwild", "emberfell": "emberfell", "pelaglyph": "pelaglyph", "hypercycle": "hypercycle", "wowzaworka": "wowzaworka"}
-STATIC_GAMES = ("litigation", "hollowtide", "grandstrat", "vipertcg", "battlelines", "scramble")
+STATIC_GAMES = ("litigation", "hollowtide", "grandstrat", "vipertcg", "battlelines", "scramble", "elderhold")
 HYPERCYCLE_RUNTIME = ("serve.mjs", "hypercycle.mjs", "websocket.mjs")
 ALGORITHM = "sha256-path-size-content-v1"
 PUBLIC = frozenset(".html .htm .css .js .mjs .cjs .json .webmanifest .svg .png .jpg .jpeg .gif .webp .avif .ico .woff .woff2 .ttf .otf .eot .mp3 .ogg .wav .m4a .mp4 .webm .wasm".split())

@@ -1,6 +1,6 @@
 # brainrotgame.shop · gameslop.now
 
-The front door for seventeen games, answering on two domains. Each card shows the shared total of Play
+The front door for eighteen games, answering on two domains. Each card shows the shared total of Play
 button clicks. The sort menu defaults to **Sort by number of plays**, with **Sort by newest update**
 and **Trending** (play clicks in the last seven days) also available. The header and title say
 whichever name the visitor typed; both domains use the same counters.
@@ -102,7 +102,7 @@ Verify desktop layout, narrow-screen suppression and the privacy page without cl
 
 ## Shared play counts
 
-`GET /api/plays` returns all seventeen fixed game IDs in `counts` (lifetime plays), `weeklyCounts`
+`GET /api/plays` returns all eighteen fixed game IDs in `counts` (lifetime plays), `weeklyCounts`
 (plays in the rolling last seven days), and `lastUpdated` (UTC date strings or null). It also
 returns `weeklyTrackingStartedAt` and an increasing `asOf` timestamp so delayed responses cannot
 replace fresher rankings. `POST /api/plays/<game-id>` with an empty body adds one real play event
@@ -170,13 +170,13 @@ that a day-of-month `*/3` cron expression creates at month boundaries. After ser
 next check saves an overdue snapshot. The first export is created during installation.
 
 Snapshots are private, timestamped JSON files in **`/var/backups/gameslop/plays`**, containing a UTC
-export timestamp and a `counts` map for all seventeen games. The export reads a consistent SQLite
+export timestamp and a `counts` map for all eighteen games. The export reads a consistent SQLite
 snapshot, writes atomically, and never changes live counters. Old exports are retained. Failures
 leave the previous successful snapshot intact and are logged in `/var/log/gameslop-plays-export.log`.
 This folder is on the same server; it is not an off-server disaster recovery backup.
-Exports made before Hypercycle, the first two Bridger games, Grand Strategy, ViperTCG, Battle Lines, Wowzaworka, or Scramble
-retain their original nine-, ten-, twelve-, thirteen-, fourteen-, fifteen-, or sixteen-game map. They remain valid history
-for the 72-hour schedule; new exports require all seventeen games and do not rewrite old files.
+Exports made before Hypercycle, the first two Bridger games, Grand Strategy, ViperTCG, Battle Lines, Wowzaworka, Scramble, or Elderhold
+retain their original nine-, ten-, twelve-, thirteen-, fourteen-, fifteen-, sixteen-, or seventeen-game map. They remain valid history
+for the 72-hour schedule; new exports require all eighteen games and do not rewrite old files.
 
 The normal deployment preserves the schedule and export history. To install only this job, upload
 `counter/export_counts.py`, `ops/gameslop-plays-export.cron`, and `ops/install-exports.sh` into a
@@ -288,7 +288,7 @@ client and server builds through its restricted deployment account. The portal d
 The new `vipertcg` counter starts at zero without resetting any existing lifetime totals, weekly
 events, or the weekly tracking start. Its update date comes from the matching static release
 manifest, and unchanged content retains its original date. The exporter accepts all prior catalog
-sizes as history while requiring all seventeen game counters in new snapshots.
+sizes as history while requiring all eighteen game counters in new snapshots.
 
 ## Battle Lines: World at War
 
@@ -333,5 +333,20 @@ own GitHub release workflow; the portal does not deploy game code.
 The new `scramble` counter starts at zero. Adding it preserves all sixteen existing lifetime totals,
 weekly events, the tracking start, game update dates and export history. The release-date collector
 fingerprints the active public assets and reads their matching `release.json` deployment date.
-Unchanged game content retains its prior date. New exports require all seventeen counters; existing
+Unchanged game content retains its prior date. That release added a seventeenth counter; existing
 sixteen-game and earlier snapshots remain valid history on the same 72-hour schedule.
+
+## Elderhold
+
+- Elderhold - https://elderhold.gameslop.now - solo turn-based fantasy tactics. Lead named heroes
+  through a campaign with permanent losses, or command one of four factions in a skirmish against
+  the AI. The overhead battlefield uses a 2D canvas and mouse controls.
+
+The source repository is `adamxu1999-hub/Elderhold`. Its independently published production build
+is served from `/opt/gameslop-static/elderhold/current/site`. The portal does not deploy game code.
+
+The new `elderhold` counter starts at zero without resetting any of the seventeen existing games'
+lifetime totals, weekly events, tracking start, update dates, or export history. The release-date
+collector fingerprints the public assets and reads their matching `release.json` deployment date.
+Unchanged content retains its prior date. New exports require all eighteen counters; seventeen-game
+and earlier snapshots remain valid history on the same 72-hour schedule.
