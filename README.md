@@ -322,13 +322,16 @@ counter, while historical fifteen-game exports retain the existing
 
 ## Scramble
 
-- Scramble — https://scramble.gameslop.now — a solo first-person space fleet battle. Launch a fighter
-  or bomber from your carrier, intercept enemy bombers and strike their carrier. Requires a desktop
-  browser with WebGL, pointer lock, and keyboard/mouse controls; the other ships are AI-controlled.
+- Scramble — https://scramble.gameslop.now — a first-person space fleet battle for solo play or
+  private online co-op with up to eight people. Every human flies for Blue alongside AI wingmen;
+  the Red fleet is controlled by the game. Launch a fighter or bomber, defend the Meridian and
+  destroy the enemy carrier. Requires a desktop browser with WebGL, pointer lock and keyboard/mouse.
 
 The source repository is `bridger2500/scramble`. Its production build is served independently from
-`/opt/gameslop-static/scramble/current/site`. Tested updates to its main branch are published by its
-own GitHub release workflow; the portal does not deploy game code.
+`/opt/gameslop-static/scramble/current/site`. Private rooms connect to its same-origin `/multiplayer`
+WebSocket service. Tested client and server updates to its main branch are published by its own
+GitHub release workflow; the portal does not deploy game code. The co-op catalog update preserves
+the existing Scramble play totals and history.
 
 The new `scramble` counter starts at zero. Adding it preserves all sixteen existing lifetime totals,
 weekly events, the tracking start, game update dates and export history. The release-date collector
