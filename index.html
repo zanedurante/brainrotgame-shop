@@ -3,6 +3,12 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<script>
+  // Reserve the desktop sidebar layout before first paint, independently of ad loading.
+  if (location.origin === 'https://gameslop.now' && ['/', '/index.html'].includes(location.pathname)) {
+    document.documentElement.classList.add('sidebar-layout-enabled');
+  }
+</script>
 <meta name="google-adsense-account" content="ca-pub-3292344753796518">
 <title>Game Slop Now</title>
 <meta name="description" content="When you want game slop, now. Free games to play in browser (zero downloads or accounts needed).">
@@ -27,12 +33,12 @@
   .ad-rail[hidden] { display: none !important; }
   .ad-label { margin: 0 0 10px; color: var(--muted); font-size: 11px; letter-spacing: .04em; text-align: center; }
   @media (min-width: 1536px) and (hover: hover) and (pointer: fine) {
-    .has-sidebar-ads .portal-layout { max-width: 1488px; display: grid; grid-template-columns: 160px minmax(0, 1040px) 160px; gap: 48px; padding: 0 16px; align-items: start; }
-    .has-sidebar-ads .wrap { width: 100%; min-width: 0; grid-column: 2; grid-row: 1; }
-    .has-sidebar-ads .logo { margin-inline-start: 96px; }
-    .has-sidebar-ads .ad-rail { display: block; padding-top: 64px; min-width: 0; }
-    .has-sidebar-ads [data-sidebar-ad="left"] { grid-column: 1; grid-row: 1; }
-    .has-sidebar-ads [data-sidebar-ad="right"] { grid-column: 3; grid-row: 1; }
+    .sidebar-layout-enabled .portal-layout { max-width: 1488px; display: grid; grid-template-columns: 160px minmax(0, 1040px) 160px; gap: 48px; padding: 0 16px; align-items: start; }
+    .sidebar-layout-enabled .wrap { width: 100%; min-width: 0; grid-column: 2; grid-row: 1; }
+    .sidebar-layout-enabled .logo { margin-inline-start: 96px; }
+    .sidebar-layout-enabled .ad-rail { display: block; padding-top: 64px; min-width: 0; }
+    .sidebar-layout-enabled [data-sidebar-ad="left"] { grid-column: 1; grid-row: 1; }
+    .sidebar-layout-enabled [data-sidebar-ad="right"] { grid-column: 3; grid-row: 1; }
     .sidebar-ad-unit { display: block; width: 160px; height: 600px; }
   }
   header { padding: 64px 0 28px; }
