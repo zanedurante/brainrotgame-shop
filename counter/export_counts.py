@@ -16,8 +16,9 @@ except ImportError:  # Keep the same exporter testable on Windows development ma
     fcntl = None
     import msvcrt
 
-SLUGS = ("primordial", "primordial-tactics", "bagbrawl", "deadpoint", "headsup", "grove", "emberwild", "emberfell", "pelaglyph", "hypercycle", "litigation", "hollowtide", "grandstrat", "vipertcg", "battlelines", "wowzaworka")
-PRE_WOWZAWORKA_SLUGS = tuple(slug for slug in SLUGS if slug != "wowzaworka")
+SLUGS = ("primordial", "primordial-tactics", "bagbrawl", "deadpoint", "headsup", "grove", "emberwild", "emberfell", "pelaglyph", "hypercycle", "litigation", "hollowtide", "grandstrat", "vipertcg", "battlelines", "wowzaworka", "scramble")
+PRE_SCRAMBLE_SLUGS = tuple(slug for slug in SLUGS if slug != "scramble")
+PRE_WOWZAWORKA_SLUGS = tuple(slug for slug in PRE_SCRAMBLE_SLUGS if slug != "wowzaworka")
 PRE_BATTLELINES_SLUGS = tuple(slug for slug in PRE_WOWZAWORKA_SLUGS if slug != "battlelines")
 PRE_VIPERTCG_SLUGS = tuple(slug for slug in PRE_BATTLELINES_SLUGS if slug != "vipertcg")
 PRE_GRANDSTRAT_SLUGS = tuple(slug for slug in PRE_VIPERTCG_SLUGS if slug != "grandstrat")
@@ -28,11 +29,11 @@ STAMP = "%Y%m%dT%H%M%S%fZ"
 
 
 def validate_counts(counts, *, historical=False):
-    # Retained nine-, ten-, twelve-, thirteen-, fourteen-, and fifteen-game exports preserve the schedule.
-    # New snapshots require all sixteen games; historical files are not rewritten.
+    # Retained nine-, ten-, twelve-, thirteen-, fourteen-, fifteen-, and sixteen-game exports preserve the schedule.
+    # New snapshots require all seventeen games; historical files are not rewritten.
     expected = SLUGS
     if historical and isinstance(counts, dict):
-        for catalog in (PRE_HYPERCYCLE_SLUGS, PRE_BRIDGER_SLUGS, PRE_GRANDSTRAT_SLUGS, PRE_VIPERTCG_SLUGS, PRE_BATTLELINES_SLUGS, PRE_WOWZAWORKA_SLUGS):
+        for catalog in (PRE_HYPERCYCLE_SLUGS, PRE_BRIDGER_SLUGS, PRE_GRANDSTRAT_SLUGS, PRE_VIPERTCG_SLUGS, PRE_BATTLELINES_SLUGS, PRE_WOWZAWORKA_SLUGS, PRE_SCRAMBLE_SLUGS):
             if set(counts) == set(catalog):
                 expected = catalog
                 break
