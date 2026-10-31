@@ -410,7 +410,7 @@ test('manual sidebar ads stay confined to eligible portal screens', async t => {
       assert.equal((await geometry(f.page)).content.x, 280);
       await f.page.locator('#sort-order').selectOption('trending');
       assert.equal(await f.page.locator('#sort-order').inputValue(), 'trending');
-      assert.equal(await f.page.locator('.card[data-game]').count(), 17);
+      assert.equal(await f.page.locator('.card[data-game]').count(), 18);
       await f.close();
     });
 

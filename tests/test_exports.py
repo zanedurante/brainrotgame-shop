@@ -194,7 +194,7 @@ class ExportTests(unittest.TestCase):
         self.assertIsNone(self.export())
         current = self.export(now=previous + timedelta(hours=72))
         self.assertEqual(json.loads(current.read_text())["counts"], self.counts)
-        self.assertEqual(len(self.counts), 17)
+        self.assertEqual(len(self.counts), 18)
         self.assertEqual(legacy.read_bytes(), original)
         with self.assertRaises(ValueError):
             exporter.validate_counts(counts)
@@ -217,12 +217,35 @@ class ExportTests(unittest.TestCase):
         self.assertIsNone(self.export(now=previous + timedelta(hours=71, minutes=59, seconds=59)))
         current = self.export(now=previous + timedelta(hours=72))
         self.assertEqual(json.loads(current.read_text())["counts"], self.counts)
-        self.assertEqual(len(self.counts), 17)
+        self.assertEqual(len(self.counts), 18)
         self.assertEqual(legacy.read_bytes(), original)
         with self.assertRaises(ValueError):
             exporter.validate_counts(counts)
         with closing(sqlite3.connect(self.db)) as connection:
             connection.execute("DELETE FROM plays WHERE slug='scramble'")
+            connection.commit()
+        with self.assertRaises(ValueError):
+            self.export(now=previous + timedelta(hours=144))
+        self.assertEqual(len(list(self.output.glob("*.json"))), 2)
+
+    def test_seventeen_game_history_keeps_schedule_and_new_exports_require_elderhold(self):
+        self.output.mkdir()
+        previous = self.now - timedelta(hours=24)
+        counts = {slug: self.counts[slug] for slug in exporter.PRE_ELDERHOLD_SLUGS}
+        self.assertEqual(len(counts), 17)
+        legacy = self.output / ("plays-" + previous.strftime(exporter.STAMP) + ".json")
+        legacy.write_text(json.dumps({"exported_at": previous.isoformat().replace("+00:00", "Z"), "counts": counts}), encoding="utf-8")
+        original = legacy.read_bytes()
+        self.assertIsNone(self.export())
+        self.assertIsNone(self.export(now=previous + timedelta(hours=71, minutes=59, seconds=59)))
+        current = self.export(now=previous + timedelta(hours=72))
+        self.assertEqual(json.loads(current.read_text())["counts"], self.counts)
+        self.assertEqual(len(self.counts), 18)
+        self.assertEqual(legacy.read_bytes(), original)
+        with self.assertRaises(ValueError):
+            exporter.validate_counts(counts)
+        with closing(sqlite3.connect(self.db)) as connection:
+            connection.execute("DELETE FROM plays WHERE slug='elderhold'")
             connection.commit()
         with self.assertRaises(ValueError):
             self.export(now=previous + timedelta(hours=144))
