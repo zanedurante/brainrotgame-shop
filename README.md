@@ -52,9 +52,13 @@ wide, hover support and a fine pointer.
 Narrow/touch layouts, the alias domain, information pages, game subdomains and local previews do not
 initialize this advertising setup. Do not add a global Google SDK tag to the shared pages: that would
 bypass the placement scope and load advertising services on the privacy disclosure page.
-The SDK loads asynchronously once; visible units are initialized once each after it loads. Resizing
-does not refresh ads. Load errors and unfilled units hide their rails while the game catalog remains
-centered. The deployment and installer include `assets/sidebar-ads.js` with the portal assets.
+The SDK loads asynchronously once; visible units are initialized once each after it loads. Each
+publisher-owned unit declares its 160 × 600 dimensions explicitly. Resizing does not refresh ads.
+Load errors and unfilled units hide their rails while the game catalog remains centered. If a
+generated iframe or slot extends outside its allotted area, the entire placement is hidden for
+that page load; the code never crops or resizes Google's creative. Frame insertion, dimension
+changes and later resizing are checked so an incompletely initialized frame cannot cover the
+headline or game cards. The deployment and installer include `assets/sidebar-ads.js` with the portal assets.
 
 Google's published Privacy & messaging configuration supplies the consent interface through the
 AdSense SDK. There is no separate CMP script, custom consent gate or custom privacy-link API.

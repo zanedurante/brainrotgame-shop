@@ -25,6 +25,34 @@
     }
   };
 
+  const checkPlacementBounds = () => {
+    if (!wideScreen.matches || !sdkReady || sdkFailed) return;
+    for (let i = 0; i < units.length; i += 1) {
+      if (rails[i].hidden || failedUnits.has(units[i])) continue;
+      const slot = units[i].getBoundingClientRect();
+      const rail = rails[i].getBoundingClientRect();
+      const outside = box => box.width > 0 && box.height > 0 && (
+        box.left < rail.left - 1 || box.right > rail.right + 1 ||
+        box.top < slot.top - 1 || box.bottom > slot.top + 601
+      );
+      // A blocked or incompletely initialized iframe can keep the browser's default
+      // 300px width. Suppress the entire malformed placement; never crop or resize
+      // Google's creative, and never refresh it in an attempt to recover.
+      if (outside(slot) || [...units[i].querySelectorAll('iframe')].some(frame => outside(frame.getBoundingClientRect()))) {
+        failedUnits.add(units[i]);
+        rails[i].hidden = true;
+      }
+    }
+  };
+
+  const placementSizes = new ResizeObserver(checkPlacementBounds);
+  for (const unit of units) placementSizes.observe(unit);
+  const observeFrames = () => {
+    for (const unit of units) {
+      for (const frame of unit.querySelectorAll('iframe')) placementSizes.observe(frame);
+    }
+  };
+
   const initializeVisibleUnits = () => {
     if (!sdkReady || sdkFailed || !wideScreen.matches) return;
     for (let i = 0; i < units.length; i += 1) {
@@ -34,6 +62,8 @@
       initialized.add(unit);
       try {
         (window.adsbygoogle = window.adsbygoogle || []).push({});
+        observeFrames();
+        checkPlacementBounds();
       } catch {
         failedUnits.add(unit);
         rails[i].hidden = true;
@@ -63,13 +93,20 @@
     document.head.append(sdk);
   };
 
-  new MutationObserver(updateVisibility).observe(document.querySelector('.portal-layout'), {
-    subtree: true, attributes: true, attributeFilter: ['data-ad-status'],
+  const placementChanges = new MutationObserver(() => {
+    updateVisibility();
+    observeFrames();
+    checkPlacementBounds();
+  });
+  for (const unit of units) placementChanges.observe(unit, {
+    subtree: true, childList: true, attributes: true,
+    attributeFilter: ['data-ad-status', 'style', 'width', 'height', 'class'],
   });
   wideScreen.addEventListener('change', () => {
     updateVisibility();
     loadSdk();
     initializeVisibleUnits();
+    checkPlacementBounds();
   });
   updateVisibility();
   loadSdk();
