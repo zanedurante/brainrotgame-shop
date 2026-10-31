@@ -111,7 +111,7 @@ test('shared play counts keep navigation native, totals truthful, and ranking cu
       assert.deepEqual(await page.locator('[data-game="wowzaworka"] .meta span').allTextContents(), ['1 player', 'Solo', 'Keyboard + touch']);
       assert.equal(await countText(page, 'wowzaworka'), '0 plays');
       assert.equal(await page.locator('[data-game="scramble"] a.play').getAttribute('href'), 'https://scramble.gameslop.now');
-      assert.deepEqual(await page.locator('[data-game="scramble"] .meta span').allTextContents(), ['1 player', 'Solo', 'Keyboard + mouse']);
+      assert.deepEqual(await page.locator('[data-game="scramble"] .meta span').allTextContents(), ['1–8 players', 'Solo + online co-op', 'Keyboard + mouse']);
       assert.equal(await countText(page, 'scramble'), '0 plays');
       assert.equal(await page.locator('[data-game="elderhold"] a.play').getAttribute('href'), 'https://elderhold.gameslop.now');
       assert.deepEqual(await page.locator('[data-game="elderhold"] .meta span').allTextContents(), ['1 player', 'Solo', 'Mouse']);

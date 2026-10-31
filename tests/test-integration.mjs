@@ -153,7 +153,7 @@ try {
   assert.equal(await secondPage.locator('[data-game="wowzaworka"] .count-detail').textContent(), '1 in the last 7 days');
   const scramble = secondPage.locator('[data-game="scramble"] .play');
   assert.equal(await scramble.getAttribute('href'), 'https://scramble.gameslop.now');
-  assert.equal(await secondPage.locator('[data-game="scramble"] .meta').textContent(), '1 playerSoloKeyboard + mouse');
+  assert.equal(await secondPage.locator('[data-game="scramble"] .meta').textContent(), '1–8 playersSolo + online co-opKeyboard + mouse');
   await scramble.evaluate(element => { element.href = '#opened-scramble'; });
   await scramble.click();
   await secondPage.waitForFunction(() => document.querySelector('[data-game="scramble"] .count-value')?.textContent === '1');
