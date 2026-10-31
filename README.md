@@ -54,6 +54,10 @@ initialize this advertising setup. Do not add a global Google SDK tag to the sha
 bypass the placement scope and load advertising services on the privacy disclosure page.
 The SDK loads asynchronously once; visible units are initialized once each after it loads. Each
 publisher-owned unit declares its 160 × 600 dimensions explicitly. Resizing does not refresh ads.
+The homepage establishes its sidebar layout eligibility before first paint; desktop media rules
+reserve the space and logo position independently of the ad SDK. Slow, blocked, failed or unfilled
+ads therefore do not move the logo or catalog. Each full browser reload still starts a new document
+and ad request; initialization is once per placement per document, not once across all page visits.
 Load errors and unfilled units hide their rails while the game catalog remains centered. If a
 generated iframe or slot extends outside its allotted area, the entire placement is hidden for
 that page load; the code never crops or resizes Google's creative. Frame insertion, dimension

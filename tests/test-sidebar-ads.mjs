@@ -18,12 +18,20 @@ const payload = {
 const browser = await playwright.chromium.launch({ headless: true, ...(process.env.PORTAL_BROWSER_CHANNEL ? { channel: process.env.PORTAL_BROWSER_CHANNEL } : {}) });
 const sdkUrl = 'https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-3292344753796518';
 
-async function fixture({ width = 1600, origin = 'https://gameslop.now', path = '/', blocked = false, unfilled = false, throws = false, holdSdk = false, mobile = false, deviceScaleFactor = 1, adStatus = unfilled ? 'unfilled' : 'filled', frameDimensions = { width: 160, height: 600 } } = {}) {
+async function fixture({
+  width = 1600, origin = 'https://gameslop.now', path = '/', blocked = false,
+  unfilled = false, throws = false, holdSdk = false, holdLoader = false, blockedLoader = false,
+  mobile = false, deviceScaleFactor = 1, adStatus = unfilled ? 'unfilled' : 'filled',
+  frameDimensions = { width: 160, height: 600 },
+} = {}) {
   const context = await browser.newContext({ viewport: { width, height: 1000 }, isMobile: mobile, hasTouch: mobile, deviceScaleFactor });
   const page = await context.newPage();
   const requests = [], unexpected = [], errors = [];
-  let pendingSdk;
-  const mockSdk = `
+  let pendingSdk, pendingLoader;
+  let heldSdkReady;
+  const sdkHeld = new Promise(resolve => { heldSdkReady = resolve; });
+  let sdkBlocked = blocked, sdkAdStatus = adStatus;
+  const mockSdk = () => `
     window.testAdCalls = 0;
     window.adsbygoogle = { push() {
       window.testAdCalls += 1;
@@ -46,7 +54,7 @@ async function fixture({ width = 1600, origin = 'https://gameslop.now', path = '
       wrapper.append(frame);
       unit.append(wrapper);
       unit.dataset.adsbygoogleStatus = 'done';
-      const status = ${JSON.stringify(adStatus)};
+      const status = ${JSON.stringify(sdkAdStatus)};
       if (status !== null) unit.dataset.adStatus = status;
     }};
   `;
@@ -56,24 +64,38 @@ async function fixture({ width = 1600, origin = 'https://gameslop.now', path = '
     const request = route.request(), url = new URL(request.url());
     requests.push({ url: request.url(), method: request.method() });
     if (request.url() === sdkUrl) {
-      if (blocked) return route.abort('blockedbyclient');
-      if (holdSdk) return new Promise(resolve => { pendingSdk = async () => { await route.fulfill({ contentType: 'text/javascript', body: mockSdk }); resolve(); }; });
-      return route.fulfill({ contentType: 'text/javascript', body: mockSdk });
+      if (sdkBlocked) return route.abort('blockedbyclient');
+      if (holdSdk) return new Promise(resolve => {
+        pendingSdk = async () => { await route.fulfill({ contentType: 'text/javascript', body: mockSdk() }); resolve(); };
+        heldSdkReady();
+      });
+      return route.fulfill({ contentType: 'text/javascript', body: mockSdk() });
     }
     if (url.origin === origin) {
       if (url.pathname === '/api/plays') return route.fulfill({ contentType: 'application/json', body: JSON.stringify(payload) });
       let name = url.pathname.slice(1);
       if (!name || name === 'unknown') name = 'index.html';
+      if (name === 'assets/sidebar-ads.js') {
+        if (blockedLoader) return route.abort('blockedbyclient');
+        if (holdLoader) return new Promise(resolve => { pendingLoader = async () => { await route.fulfill({ contentType: 'text/javascript', body: files[name] }); resolve(); }; });
+      }
       if (files[name]) return route.fulfill({ contentType: name.endsWith('.js') ? 'text/javascript' : 'text/html', body: files[name] });
     }
     unexpected.push(request.url());
     return route.abort('blockedbyclient');
   });
-  await page.goto(origin + path, { waitUntil: holdSdk ? 'domcontentloaded' : 'load' });
+  await page.goto(origin + path, { waitUntil: holdLoader ? 'commit' : holdSdk ? 'domcontentloaded' : 'load' });
   await page.waitForFunction(() => document.querySelector('[data-game] [data-play-count]')?.textContent.includes('0 plays') || !document.querySelector('[data-game]'));
   return {
     page, context, requests, unexpected, errors,
     sdkRequests: () => requests.filter(request => request.url === sdkUrl).length,
+    waitForHeldSdk: () => sdkHeld,
+    setSdkState: ({ blocked = false, status = 'filled' } = {}) => { sdkBlocked = blocked; sdkAdStatus = status; },
+    releaseLoader: async () => {
+      assert.ok(pendingLoader, 'Sidebar loader request is pending');
+      await pendingLoader();
+      await page.waitForLoadState('domcontentloaded');
+    },
     releaseSdk: async () => {
       assert.ok(pendingSdk, 'SDK request is pending');
       await pendingSdk();
@@ -101,6 +123,16 @@ async function geometry(page) {
       units: [...document.querySelectorAll('.sidebar-ad-unit')].map(element => ({ ...rect(element), display: getComputedStyle(element).display })),
     };
   });
+}
+
+async function portalGeometry(page) {
+  await page.waitForFunction(() => document.querySelector('[data-game] [data-play-count]')?.textContent.includes('0 plays'));
+  return page.evaluate(() => Object.fromEntries([
+    '.wrap', 'header', '.logo', '.logo .mark', '#brand', 'h1', '.lede', '.ranking-bar', '.grid', '.card[data-game]',
+  ].map(selector => {
+    const box = document.querySelector(selector).getBoundingClientRect();
+    return [selector, { x: box.x, y: box.y, width: box.width, height: box.height }];
+  })));
 }
 
 async function assertFramesContained(page, { requireVisible = false } = {}) {
@@ -309,6 +341,68 @@ test('manual sidebar ads stay confined to eligible portal screens', async t => {
       assert.equal(f.sdkRequests(), 1);
       await f.close();
     });
+
+    await t.test('desktop layout is stable before the sidebar loader and throughout delayed ad loading', async () => {
+      const f = await fixture({ holdLoader: true, holdSdk: true });
+      try {
+        const initial = await portalGeometry(f.page);
+        assert.equal(f.sdkRequests(), 0, 'No Google request before the deferred sidebar loader executes');
+        assert.equal(await f.page.locator('.ad-rail:visible').count(), 0);
+        assert.equal(initial['.logo .mark'].x, initial['.wrap'].x + 16 + 96,
+          'The desktop logo offset must exist in the initial document, independently of ad availability');
+        await f.releaseLoader();
+        await f.waitForHeldSdk();
+        assert.equal(f.sdkRequests(), 1);
+        assert.deepEqual(await portalGeometry(f.page), initial, 'Loading the sidebar script cannot shift the header or catalog');
+        await f.releaseSdk();
+        await f.page.waitForFunction(() => window.testAdCalls === 2);
+        assert.deepEqual(await portalGeometry(f.page), initial, 'Filled ads cannot shift the header or catalog');
+        await f.page.evaluate(() => document.querySelectorAll('.sidebar-ad-unit').forEach(unit => { unit.dataset.adStatus = 'unfilled'; }));
+        await f.page.waitForFunction(() => [...document.querySelectorAll('[data-sidebar-ad]')].every(rail => rail.hidden));
+        assert.deepEqual(await portalGeometry(f.page), initial, 'Unfilled ads cannot shift the header or catalog');
+      } finally {
+        await f.close();
+      }
+    });
+
+    await t.test('repeated reloads preserve desktop geometry whether ads fill, fail, or remain unfilled', async () => {
+      const f = await fixture();
+      let initial;
+      try {
+        initial = await portalGeometry(f.page);
+        for (const state of [{ blocked: true }, { status: 'unfilled' }, { status: 'filled' }, { blocked: true }]) {
+          f.setSdkState(state);
+          await f.page.reload({ waitUntil: 'load' });
+          assert.deepEqual(await portalGeometry(f.page), initial, `Reload must preserve geometry for ${JSON.stringify(state)}`);
+          assert.equal(await f.page.locator('.ad-rail:visible').count(), state.status === 'filled' ? 2 : 0);
+        }
+      } finally {
+        await f.close();
+      }
+      const blocked = await fixture({ blockedLoader: true });
+      try {
+        assert.equal(blocked.sdkRequests(), 0);
+        assert.deepEqual(await portalGeometry(blocked.page), initial, 'Even a blocked sidebar loader must retain the same desktop layout');
+      } finally {
+        await blocked.close();
+      }
+    });
+
+    for (const options of [{ width: 390 }, { origin: 'https://brainrotgame.shop' }]) {
+      await t.test(`initial and loaded layout stays unchanged without sidebars on ${options.origin || options.width + 'px'}`, async () => {
+        const f = await fixture({ ...options, holdLoader: true });
+        try {
+          const initial = await portalGeometry(f.page);
+          assert.equal(initial['.logo .mark'].x, initial['.wrap'].x + 16, 'Ineligible screens retain their normal logo alignment');
+          await f.releaseLoader();
+          assert.deepEqual(await portalGeometry(f.page), initial);
+          assert.equal(f.sdkRequests(), 0);
+          assert.equal(await f.page.locator('.ad-rail:visible').count(), 0);
+        } finally {
+          await f.close();
+        }
+      });
+    }
 
     await t.test('a blocked SDK leaves the normal portal usable without ad placeholders', async () => {
       const f = await fixture({ blocked: true });

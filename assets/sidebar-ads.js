@@ -19,7 +19,6 @@
 
   const updateVisibility = () => {
     const visible = wideScreen.matches && sdkReady && !sdkFailed;
-    document.body.classList.toggle('has-sidebar-ads', visible);
     for (let i = 0; i < rails.length; i += 1) {
       rails[i].hidden = !visible || failedUnits.has(units[i]) || units[i].dataset.adStatus === 'unfilled';
     }
