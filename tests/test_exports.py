@@ -194,7 +194,7 @@ class ExportTests(unittest.TestCase):
         self.assertIsNone(self.export())
         current = self.export(now=previous + timedelta(hours=72))
         self.assertEqual(json.loads(current.read_text())["counts"], self.counts)
-        self.assertEqual(len(self.counts), 18)
+        self.assertEqual(len(self.counts), 19)
         self.assertEqual(legacy.read_bytes(), original)
         with self.assertRaises(ValueError):
             exporter.validate_counts(counts)
@@ -217,7 +217,7 @@ class ExportTests(unittest.TestCase):
         self.assertIsNone(self.export(now=previous + timedelta(hours=71, minutes=59, seconds=59)))
         current = self.export(now=previous + timedelta(hours=72))
         self.assertEqual(json.loads(current.read_text())["counts"], self.counts)
-        self.assertEqual(len(self.counts), 18)
+        self.assertEqual(len(self.counts), 19)
         self.assertEqual(legacy.read_bytes(), original)
         with self.assertRaises(ValueError):
             exporter.validate_counts(counts)
@@ -240,7 +240,7 @@ class ExportTests(unittest.TestCase):
         self.assertIsNone(self.export(now=previous + timedelta(hours=71, minutes=59, seconds=59)))
         current = self.export(now=previous + timedelta(hours=72))
         self.assertEqual(json.loads(current.read_text())["counts"], self.counts)
-        self.assertEqual(len(self.counts), 18)
+        self.assertEqual(len(self.counts), 19)
         self.assertEqual(legacy.read_bytes(), original)
         with self.assertRaises(ValueError):
             exporter.validate_counts(counts)
