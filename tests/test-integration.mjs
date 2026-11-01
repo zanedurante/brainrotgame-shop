@@ -47,7 +47,9 @@ try {
   await page.waitForFunction(() => document.querySelector('.card').dataset.game === 'deadpoint');
   const order = () => page.locator('.card').evaluateAll(cards => cards.map(card => card.dataset.game));
   assert.deepEqual(await order(), expectedPlays);
-  assert.equal(await page.locator('.card').count(), 18);
+  assert.equal(await page.locator('.card').count(), originalOrder.length);
+  assert.equal(await page.locator('[data-game="tabby"] .count-value').textContent(), '0');
+  assert.equal(await page.locator('[data-game="tabby"] .play').getAttribute('href'), 'https://tabby.gameslop.now');
   assert.equal(await page.locator('[data-game="hypercycle"] .count-value').textContent(), '0');
   assert.equal(await page.locator('[data-game="battlelines"] .count-value').textContent(), '0');
   assert.equal(await page.locator('[data-game="wowzaworka"] .count-value').textContent(), '0');
