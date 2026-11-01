@@ -19,10 +19,10 @@ import sys
 import tempfile
 
 SLUGS = ("primordial", "primordial-tactics", "bagbrawl", "deadpoint", "headsup",
-         "grove", "emberwild", "emberfell", "pelaglyph", "hypercycle", "litigation", "hollowtide", "grandstrat", "vipertcg", "battlelines", "wowzaworka", "scramble", "elderhold")
+         "grove", "emberwild", "emberfell", "pelaglyph", "hypercycle", "litigation", "hollowtide", "grandstrat", "vipertcg", "battlelines", "wowzaworka", "scramble", "elderhold", "tabby")
 BUNDLE = {"primordial": "primordial-action", "primordial-tactics": "primordial",
           "grove": "grove", "emberwild": "emberwild", "emberfell": "emberfell", "pelaglyph": "pelaglyph", "hypercycle": "hypercycle", "wowzaworka": "wowzaworka"}
-STATIC_GAMES = ("litigation", "hollowtide", "grandstrat", "vipertcg", "battlelines", "scramble", "elderhold")
+STATIC_GAMES = ("litigation", "hollowtide", "grandstrat", "vipertcg", "battlelines", "scramble", "elderhold", "tabby")
 HYPERCYCLE_RUNTIME = ("serve.mjs", "hypercycle.mjs", "websocket.mjs")
 ALGORITHM = "sha256-path-size-content-v1"
 PUBLIC = frozenset(".html .htm .css .js .mjs .cjs .json .webmanifest .svg .png .jpg .jpeg .gif .webp .avif .ico .woff .woff2 .ttf .otf .eot .mp3 .ogg .wav .m4a .mp4 .webm .wasm".split())
@@ -59,6 +59,8 @@ def allowed(name, runtime=False):
     if any(word in leaf for word in (".env", ".test.", ".spec.", "secret", "credential")):
         return False
     if leaf.endswith("-ofl.txt") and "fonts" in parts and not runtime:
+        return True
+    if not runtime and parts[0] == "models" and PurePosixPath(name).suffix.lower() in {".bin", ".md"}:
         return True
     return PurePosixPath(name).suffix.lower() in (RUNTIME if runtime else PUBLIC)
 

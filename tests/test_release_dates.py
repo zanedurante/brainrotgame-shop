@@ -156,7 +156,7 @@ class ReleaseDateTests(unittest.TestCase):
             self.assertEqual(changed["lastUpdated"][slug], first["lastUpdated"][slug])
 
     def test_vipertcg_addition_uses_its_release_date_and_preserves_thirteen_existing_dates(self):
-        with patch.object(collector, "SLUGS", tuple(slug for slug in collector.SLUGS if slug not in ("vipertcg", "battlelines", "wowzaworka", "scramble", "elderhold"))):
+        with patch.object(collector, "SLUGS", tuple(slug for slug in collector.SLUGS if slug not in ("vipertcg", "battlelines", "wowzaworka", "scramble", "elderhold", "tabby"))):
             original = collector.collect(self.root, now=T1)
         self.assertEqual(len(original["lastUpdated"]), 13)
         self.static_release("vipertcg", "v1", T2, "animal cards")
@@ -176,7 +176,7 @@ class ReleaseDateTests(unittest.TestCase):
             self.assertEqual(changed["fingerprints"][slug], original["fingerprints"][slug])
 
     def test_battlelines_addition_uses_its_release_date_and_preserves_fourteen_existing_dates(self):
-        with patch.object(collector, "SLUGS", tuple(slug for slug in collector.SLUGS if slug not in ("battlelines", "wowzaworka", "scramble", "elderhold"))):
+        with patch.object(collector, "SLUGS", tuple(slug for slug in collector.SLUGS if slug not in ("battlelines", "wowzaworka", "scramble", "elderhold", "tabby"))):
             original = collector.collect(self.root, now=T1)
         self.assertEqual(len(original["lastUpdated"]), 14)
         self.static_release("battlelines", "v1", T2, "Verdun battlefield")
@@ -202,7 +202,7 @@ class ReleaseDateTests(unittest.TestCase):
         manifest["games"] = [game for game in manifest["games"] if game["slug"] != "wowzaworka"]
         (original / "manifest.json").write_text(json.dumps(manifest))
         self.activate("r0")
-        with patch.object(collector, "SLUGS", tuple(slug for slug in collector.SLUGS if slug not in ("wowzaworka", "scramble", "elderhold"))):
+        with patch.object(collector, "SLUGS", tuple(slug for slug in collector.SLUGS if slug not in ("wowzaworka", "scramble", "elderhold", "tabby"))):
             previous = collector.collect(self.root, now=T1)
         self.assertEqual(len(previous["lastUpdated"]), 15)
         self.release("r-wowzaworka", T2, "r0", {"wowzaworka": "neon arcade"})
@@ -226,7 +226,7 @@ class ReleaseDateTests(unittest.TestCase):
             self.assertEqual(changed["lastUpdated"][slug], sibling["lastUpdated"][slug])
 
     def test_scramble_addition_uses_release_date_and_preserves_sixteen_existing_dates(self):
-        with patch.object(collector, "SLUGS", tuple(slug for slug in collector.SLUGS if slug not in ("scramble", "elderhold"))):
+        with patch.object(collector, "SLUGS", tuple(slug for slug in collector.SLUGS if slug not in ("scramble", "elderhold", "tabby"))):
             previous = collector.collect(self.root, now=T1)
         self.assertEqual(len(previous["lastUpdated"]), 16)
         self.static_release("scramble", "s1", T2, "space fleet battle")
@@ -248,7 +248,7 @@ class ReleaseDateTests(unittest.TestCase):
             self.assertEqual(changed["fingerprints"][slug], first["fingerprints"][slug])
 
     def test_elderhold_addition_uses_release_date_and_preserves_seventeen_existing_dates(self):
-        with patch.object(collector, "SLUGS", tuple(slug for slug in collector.SLUGS if slug != "elderhold")):
+        with patch.object(collector, "SLUGS", tuple(slug for slug in collector.SLUGS if slug not in ("elderhold", "tabby"))):
             previous = collector.collect(self.root, now=T1)
         self.assertEqual(len(previous["lastUpdated"]), 17)
         self.static_release("elderhold", "s1", T2, "fantasy tactics")
