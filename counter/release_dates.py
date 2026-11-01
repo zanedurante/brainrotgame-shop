@@ -60,7 +60,7 @@ def allowed(name, runtime=False):
         return False
     if leaf.endswith("-ofl.txt") and "fonts" in parts and not runtime:
         return True
-    if not runtime and parts[0] == "models" and PurePosixPath(name).suffix.lower() in {".bin", ".md"}:
+    if not runtime and parts[0] in {"models", "vendor"} and PurePosixPath(name).suffix.lower() in {".bin", ".md"}:
         return True
     return PurePosixPath(name).suffix.lower() in (RUNTIME if runtime else PUBLIC)
 

@@ -16,6 +16,11 @@ T0, T1, T2, T3 = 1700000000, 1700001000, 1700002000, 1700003000
 
 
 class ReleaseDateTests(unittest.TestCase):
+    def test_tabby_model_and_attribution_files_are_part_of_release_dates(self):
+        self.assertTrue(collector.allowed("vendor/basic-pitch/group1-shard1of1.bin"))
+        self.assertTrue(collector.allowed("vendor/TRANSCRIPTION-ASSETS.md"))
+        self.assertFalse(collector.allowed("server/private.bin"))
+
     def setUp(self):
         self.temporary = tempfile.TemporaryDirectory()
         self.addCleanup(self.temporary.cleanup)
