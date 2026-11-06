@@ -187,13 +187,14 @@ test('shared play counts keep navigation native, totals truthful, and ranking cu
       await select.selectOption('updated');
       assert.deepEqual(await order(page), updatedRanking);
       assert.equal(await page.locator('#ranking-title').textContent(), 'Recently updated');
+      assert.equal(await page.locator('#ranking-note').textContent(), '');
       assert.equal(await page.locator('[data-game="hypercycle"] .count-detail').textContent(), 'Updated Sep 26, 2026');
       assert.equal(await page.locator('[data-game="primordial"] .count-detail').textContent(), 'Updated Sep 24, 2026');
       assert.equal(await page.locator('[data-game="grove"] .count-detail').textContent(), 'Update date unavailable');
       await select.selectOption('trending');
       assert.deepEqual(await order(page), trendingRanking);
       assert.equal(await page.locator('#ranking-title').textContent(), 'Trending');
-      assert.match(await page.locator('#ranking-note').textContent(), /Weekly tracking started Sep 24, 2026; earlier clicks aren’t included/);
+      assert.equal(await page.locator('#ranking-note').textContent(), '');
       assert.equal(await page.locator('[data-game="deadpoint"] .count-value').textContent(), '225');
       assert.equal(await page.locator('[data-game="deadpoint"] .count-detail').textContent(), '1 in the last 7 days');
       await select.selectOption('plays');
@@ -385,7 +386,7 @@ test('shared play counts keep navigation native, totals truthful, and ranking cu
       await waitOrder(page, ['bagbrawl', 'primordial', 'deadpoint', 'grove', 'emberfell', 'hypercycle', 'litigation', 'hollowtide', 'grandstrat', 'vipertcg', 'battlelines', 'wowzaworka', 'scramble', 'elderhold', 'tabby']);
       assert.equal(await page.locator('[data-game="primordial"] .count-detail').textContent(), '0 in the last 7 days');
       assert.equal(await page.locator('[data-game="primordial"] .count-value').textContent(), '10');
-      assert.equal(await page.locator('#ranking-note').textContent(), 'Play clicks in the last 7 days.');
+      assert.equal(await page.locator('#ranking-note').textContent(), '');
       await page.close();
     });
 

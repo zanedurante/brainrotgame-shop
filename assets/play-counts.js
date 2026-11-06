@@ -16,7 +16,6 @@
   const dateFormatter = new Intl.DateTimeFormat(document.documentElement.lang || 'en', { year: 'numeric', month: 'short', day: 'numeric', timeZone: 'UTC' });
   const sortModes = ['plays', 'updated', 'trending'];
   const storageKey = 'gameslop-sort-order';
-  const week = 7 * 24 * 60 * 60 * 1000;
   let selectedSort = 'plays';
   try {
     const saved = sessionStorage.getItem(storageKey);
@@ -26,7 +25,6 @@
   let counts = null;
   let weeklyCounts = null;
   let lastUpdated = null;
-  let trackingStartedAt = null;
   let latestAsOf = null;
   let acceptedRequest = 0;
   let requestNumber = 0;
@@ -106,13 +104,6 @@
     const notes = [];
     if (selectedSort !== mode) {
       notes.push(`${selectedSort === 'trending' ? 'Weekly plays' : 'Update dates'} unavailable. Showing lifetime play order.`);
-    } else if (mode === 'trending') {
-      notes.push('Play clicks in the last 7 days.');
-      if (trackingStartedAt !== null && latestAsOf !== null && latestAsOf - trackingStartedAt < week) {
-        notes.push(`Weekly tracking started ${dateFormatter.format(trackingStartedAt)}; earlier clicks aren’t included.`);
-      }
-    } else if (mode === 'updated') {
-      notes.push('Newest game updates first; unknown dates appear last.');
     }
     if (refreshFailed) notes.push('Couldn’t refresh; showing last loaded data.');
     rankingNote.textContent = notes.join(' ');
@@ -177,7 +168,6 @@
     counts = Object.fromEntries(cards.map(({ slug }) => [slug, Math.max(counts?.[slug] ?? 0, values[slug])]));
     weeklyCounts = asOf === undefined ? null : parseCountMap(payload.weeklyCounts);
     lastUpdated = asOf === undefined ? null : parseUpdateMap(payload.lastUpdated);
-    trackingStartedAt = parseDate(payload.weeklyTrackingStartedAt);
     refreshFailed = false;
     render();
   }
