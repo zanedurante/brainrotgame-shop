@@ -12,11 +12,13 @@ const temporary = await mkdtemp(join(tmpdir(), 'gameslop-integration-'));
 const python = process.env.PORTAL_PYTHON || 'python';
 const database = join(temporary, 'plays.sqlite3');
 const updatesFile = join(temporary, 'updates.json');
-const originalOrder = ['primordial', 'primordial-tactics', 'bagbrawl', 'deadpoint', 'headsup', 'grove', 'emberwild', 'emberfell', 'pelaglyph', 'hypercycle', 'litigation', 'hollowtide', 'grandstrat', 'vipertcg', 'battlelines', 'wowzaworka', 'scramble', 'elderhold', 'tabby'];
-const expectedPlays = ['deadpoint', 'bagbrawl', 'primordial', 'primordial-tactics', 'headsup', 'grove', 'emberwild', 'emberfell', 'pelaglyph', 'hypercycle', 'litigation', 'hollowtide', 'grandstrat', 'vipertcg', 'battlelines', 'wowzaworka', 'scramble', 'elderhold', 'tabby'];
-const expectedUpdated = ['hypercycle', 'pelaglyph', 'emberwild', 'primordial', 'primordial-tactics', 'bagbrawl', 'deadpoint', 'headsup', 'grove', 'emberfell', 'litigation', 'hollowtide', 'grandstrat', 'vipertcg', 'battlelines', 'wowzaworka', 'scramble', 'elderhold', 'tabby'];
-const expectedTrending = ['primordial', 'bagbrawl', 'deadpoint', 'primordial-tactics', 'headsup', 'grove', 'emberwild', 'emberfell', 'pelaglyph', 'hypercycle', 'litigation', 'hollowtide', 'grandstrat', 'vipertcg', 'battlelines', 'wowzaworka', 'scramble', 'elderhold', 'tabby'];
-await writeFile(updatesFile, JSON.stringify({ lastUpdated: { ...Object.fromEntries(originalOrder.map(slug => [slug, null])), hypercycle: '2026-10-02T09:00:00Z', pelaglyph: '2026-09-26T09:00:00Z', emberwild: '2026-09-25T09:00:00Z', primordial: '2026-09-24T09:00:00Z', 'primordial-tactics': '2026-09-24T09:00:00Z' } }));
+const apiGames = ['primordial', 'primordial-tactics', 'bagbrawl', 'deadpoint', 'headsup', 'grove', 'emberwild', 'emberfell', 'pelaglyph', 'hypercycle', 'litigation', 'hollowtide', 'grandstrat', 'vipertcg', 'battlelines', 'wowzaworka', 'scramble', 'elderhold', 'tabby'];
+const hiddenGames = new Set(['primordial-tactics', 'headsup', 'emberwild', 'pelaglyph']);
+const originalOrder = apiGames.filter(slug => !hiddenGames.has(slug));
+const expectedPlays = ['deadpoint', 'bagbrawl', 'primordial', 'grove', 'emberfell', 'hypercycle', 'litigation', 'hollowtide', 'grandstrat', 'vipertcg', 'battlelines', 'wowzaworka', 'scramble', 'elderhold', 'tabby'];
+const expectedUpdated = ['hypercycle', 'primordial', 'bagbrawl', 'deadpoint', 'grove', 'emberfell', 'litigation', 'hollowtide', 'grandstrat', 'vipertcg', 'battlelines', 'wowzaworka', 'scramble', 'elderhold', 'tabby'];
+const expectedTrending = ['primordial', 'bagbrawl', 'deadpoint', 'grove', 'emberfell', 'hypercycle', 'litigation', 'hollowtide', 'grandstrat', 'vipertcg', 'battlelines', 'wowzaworka', 'scramble', 'elderhold', 'tabby'];
+await writeFile(updatesFile, JSON.stringify({ lastUpdated: { ...Object.fromEntries(apiGames.map(slug => [slug, null])), hypercycle: '2026-10-02T09:00:00Z', pelaglyph: '2026-09-26T09:00:00Z', emberwild: '2026-09-25T09:00:00Z', primordial: '2026-09-24T09:00:00Z', 'primordial-tactics': '2026-09-24T09:00:00Z' } }));
 function fixture(code) {
   const result = spawnSync(python, ['-c', `import sys, time, sqlite3\nfrom counter.server import PlayStore\nstore = PlayStore(sys.argv[1])\nconnection = store.connect()\nnow = int(time.time() * 1000)\n${code}\nconnection.close()`, database], { cwd: root, encoding: 'utf8' });
   if (result.error) throw result.error;
@@ -62,7 +64,7 @@ try {
   await page.locator('#sort-order').selectOption('updated');
   assert.deepEqual(await order(), expectedUpdated);
   assert.equal(await page.locator('[data-game="hypercycle"] .count-detail').textContent(), 'Updated Oct 2, 2026');
-  assert.equal(await page.locator('[data-game="pelaglyph"] .count-detail').textContent(), 'Updated Sep 26, 2026');
+  assert.equal(await page.locator('[data-game="primordial"] .count-detail').textContent(), 'Updated Sep 24, 2026');
   assert.equal(await page.locator('[data-game="grove"] .count-detail').textContent(), 'Update date unavailable');
   await page.screenshot({ path: join(screenshots, 'desktop-updated.png'), fullPage: true });
   await page.locator('#sort-order').selectOption('trending');
@@ -104,6 +106,7 @@ try {
   assert.equal((await (await hypercyclePosted).allHeaders()).origin, origin);
   await secondPage.waitForFunction(() => document.querySelector('[data-game="hypercycle"] .count-value')?.textContent === '1');
   const allCounts = await (await fetch(`${origin}/api/plays`)).json();
+  assert.equal(Object.keys(allCounts.counts).length, 19, 'Unlisted games remain available to the backend');
   assert.equal(allCounts.counts.hypercycle, 1);
   assert.equal(allCounts.weeklyCounts.hypercycle, 1);
   assert.equal(allCounts.counts.deadpoint, 225);
@@ -117,7 +120,7 @@ try {
   assert.equal(afterGrandstrat.counts.grandstrat, 1);
   assert.equal(afterGrandstrat.weeklyCounts.grandstrat, 1);
   assert.equal(afterGrandstrat.weeklyTrackingStartedAt, allCounts.weeklyTrackingStartedAt);
-  for (const slug of originalOrder.filter(slug => slug !== 'grandstrat')) assert.equal(afterGrandstrat.counts[slug], allCounts.counts[slug]);
+  for (const slug of apiGames.filter(slug => slug !== 'grandstrat')) assert.equal(afterGrandstrat.counts[slug], allCounts.counts[slug]);
   const vipertcg = secondPage.locator('[data-game="vipertcg"] .play');
   assert.equal(await vipertcg.getAttribute('href'), 'https://vipertcg.gameslop.now');
   await vipertcg.evaluate(element => { element.href = '#opened-vipertcg'; });
@@ -127,7 +130,7 @@ try {
   assert.equal(afterViper.counts.vipertcg, 1);
   assert.equal(afterViper.weeklyCounts.vipertcg, 1);
   assert.equal(afterViper.weeklyTrackingStartedAt, allCounts.weeklyTrackingStartedAt);
-  for (const slug of originalOrder.filter(slug => slug !== 'vipertcg')) assert.equal(afterViper.counts[slug], afterGrandstrat.counts[slug]);
+  for (const slug of apiGames.filter(slug => slug !== 'vipertcg')) assert.equal(afterViper.counts[slug], afterGrandstrat.counts[slug]);
   const battlelines = secondPage.locator('[data-game="battlelines"] .play');
   assert.equal(await battlelines.getAttribute('href'), 'https://battlelines.gameslop.now');
   assert.equal(await secondPage.locator('[data-game="battlelines"] .meta').textContent(), '1 playerSoloKeyboard + mouse');
@@ -138,7 +141,7 @@ try {
   assert.equal(afterBattleLines.counts.battlelines, 1);
   assert.equal(afterBattleLines.weeklyCounts.battlelines, 1);
   assert.equal(afterBattleLines.weeklyTrackingStartedAt, allCounts.weeklyTrackingStartedAt);
-  for (const slug of originalOrder.filter(slug => slug !== 'battlelines')) assert.equal(afterBattleLines.counts[slug], afterViper.counts[slug]);
+  for (const slug of apiGames.filter(slug => slug !== 'battlelines')) assert.equal(afterBattleLines.counts[slug], afterViper.counts[slug]);
   await secondPage.locator('#sort-order').selectOption('trending');
   assert.equal(await secondPage.locator('[data-game="battlelines"] .count-detail').textContent(), '1 in the last 7 days');
   const wowzaworka = secondPage.locator('[data-game="wowzaworka"] .play');
@@ -151,7 +154,7 @@ try {
   assert.equal(afterWowzaworka.counts.wowzaworka, 1);
   assert.equal(afterWowzaworka.weeklyCounts.wowzaworka, 1);
   assert.equal(afterWowzaworka.weeklyTrackingStartedAt, allCounts.weeklyTrackingStartedAt);
-  for (const slug of originalOrder.filter(slug => slug !== 'wowzaworka')) assert.equal(afterWowzaworka.counts[slug], afterBattleLines.counts[slug]);
+  for (const slug of apiGames.filter(slug => slug !== 'wowzaworka')) assert.equal(afterWowzaworka.counts[slug], afterBattleLines.counts[slug]);
   assert.equal(await secondPage.locator('[data-game="wowzaworka"] .count-detail').textContent(), '1 in the last 7 days');
   const scramble = secondPage.locator('[data-game="scramble"] .play');
   assert.equal(await scramble.getAttribute('href'), 'https://scramble.gameslop.now');
@@ -163,7 +166,7 @@ try {
   assert.equal(afterScramble.counts.scramble, 1);
   assert.equal(afterScramble.weeklyCounts.scramble, 1);
   assert.equal(afterScramble.weeklyTrackingStartedAt, allCounts.weeklyTrackingStartedAt);
-  for (const slug of originalOrder.filter(slug => slug !== 'scramble')) assert.equal(afterScramble.counts[slug], afterWowzaworka.counts[slug]);
+  for (const slug of apiGames.filter(slug => slug !== 'scramble')) assert.equal(afterScramble.counts[slug], afterWowzaworka.counts[slug]);
   assert.equal(await secondPage.locator('[data-game="scramble"] .count-detail').textContent(), '1 in the last 7 days');
   const elderhold = secondPage.locator('[data-game="elderhold"] .play');
   assert.equal(await elderhold.getAttribute('href'), 'https://elderhold.gameslop.now');
@@ -175,7 +178,7 @@ try {
   assert.equal(afterElderhold.counts.elderhold, 1);
   assert.equal(afterElderhold.weeklyCounts.elderhold, 1);
   assert.equal(afterElderhold.weeklyTrackingStartedAt, allCounts.weeklyTrackingStartedAt);
-  for (const slug of originalOrder.filter(slug => slug !== 'elderhold')) assert.equal(afterElderhold.counts[slug], afterScramble.counts[slug]);
+  for (const slug of apiGames.filter(slug => slug !== 'elderhold')) assert.equal(afterElderhold.counts[slug], afterScramble.counts[slug]);
   assert.equal(await secondPage.locator('[data-game="elderhold"] .count-detail').textContent(), '1 in the last 7 days');
   assert.deepEqual(errors, []);
   await secondVisitor.close();
