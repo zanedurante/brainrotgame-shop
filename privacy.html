@@ -9,33 +9,33 @@
 <style>
   :root { color-scheme: dark; }
   * { box-sizing: border-box; }
-  body { margin: 0; background: #0d0f14; color: #f2f4f8; font: 17px/1.7 system-ui, sans-serif; }
+  body { margin: 0; background: radial-gradient(ellipse at 90% 0, #261b404d, transparent 36%), #0b0a11; color: #f4f1fc; font: 18px/1.7 Arial, Helvetica, sans-serif; -webkit-font-smoothing: antialiased; }
   .wrap { max-width: 800px; margin: auto; padding: 32px 22px 64px; }
   nav, footer { display: flex; flex-wrap: wrap; gap: 12px 24px; }
-  a { color: #ffd23f; text-underline-offset: 4px; overflow-wrap: anywhere; }
-  a:focus-visible { outline: 2px solid #6fc3ff; outline-offset: 5px; }
+  a { color: #d8ff5a; text-underline-offset: 4px; overflow-wrap: anywhere; }
+  a:focus-visible { outline: 2px solid #d8ff5a; outline-offset: 5px; }
   h1 { font-size: clamp(32px, 6vw, 48px); line-height: 1.15; letter-spacing: -.03em; margin-top: 48px; }
   h2 { font-size: 23px; margin-top: 34px; line-height: 1.3; }
-  p, li { color: #c0c6d1; }
-  .date { color: #9aa4b5; font-size: 14px; }
-  footer { border-top: 1px solid #303541; margin-top: 42px; padding-top: 24px; font-size: 14px; }
+  p, li { color: #bcb3ce; }
+  .date { color: #bcb3ce; font-size: 16px; }
+  footer { border-top: 1px solid #332a42; margin-top: 42px; padding-top: 24px; font-size: 16px; }
 </style>
 </head>
 <body>
 <div class="wrap">
-  <nav aria-label="Main navigation"><a href="/">Game Slop Now</a><a href="/about.html">About the games</a></nav>
+  <nav aria-label="Main navigation"><a href="/">Game Slop Now</a><a href="/about.html">About</a></nav>
   <main>
     <h1>Privacy information</h1>
-    <p class="date">Last updated: October 30, 2026</p>
+    <p class="date">Last updated: November 6, 2026</p>
     <p>This page covers the game directory and shared play counters at gameslop.now and brainrotgame.shop. The portal does not require an account. Individual games can have different save, room and multiplayer features; this page does not describe every game's data handling.</p>
     <h2>Shared play counts</h2>
-    <p>When you activate a Play button, the portal sends the selected game's identifier to our counter service. The service records that game and the time of the click. These records support shared lifetime totals and the Trending ranking for the last seven days.</p>
-    <p>The counter database does not store your IP address, browser user-agent, email address, a cookie or a visitor identifier. Counts measure Play-button clicks, not unique people or completed game sessions. The page also requests current totals and update dates so the rankings stay current. These limits describe our play-counter service; Google's advertising services are separate and are described below.</p>
+    <p>When you open a game from the portal, we record the selected game and the time of the click. These records support shared lifetime totals and the Trending ranking for the last seven days.</p>
+    <p>Our play-count records do not include your IP address, browser user-agent, email address, a cookie or a visitor identifier. Counts measure game launches from the portal, not unique people or completed game sessions. The page also requests current totals and update dates so the rankings stay current. These limits describe our play counters; Google's advertising services are separate and are described below.</p>
     <h2>Browser preferences</h2>
     <p>The portal stores your chosen sort order in your browser's session storage for the current tab. This preference is not sent to our server. We do not use a separate audience-analytics script on the portal.</p>
     <h2>Retention and hosting</h2>
-    <p>Click records older than eight days are eligible for cleanup when the counter service starts or records a new click. Cleanup is not a guaranteed eight-day deletion deadline, and older records may remain in operational backups. Aggregate totals and periodic aggregate JSON exports are retained.</p>
-    <p>Like other websites, our hosting and network infrastructure receive connection and request information needed to deliver pages, including IP addresses and request headers. The counter application's request logs are disabled. Infrastructure logs and operational backups are separate from the counter database.</p>
+    <p>Click records older than eight days are eligible for cleanup. Cleanup is not a guaranteed eight-day deletion deadline, and older records may remain in backups. Aggregate play totals and periodic copies of those totals are retained.</p>
+    <p>Like other websites, our hosting and network providers receive connection and request information needed to deliver pages, including IP addresses and request headers. This information and backups are separate from the play-count records described above.</p>
     <h2>Google advertising</h2>
     <p>The gameslop.now homepage is configured for two sidebar advertisements through Google AdSense on wide desktop screens with a mouse or similar pointing device. Whether ads appear depends on Google's site review, available ads and your privacy choices. The advertising setup does not start on narrow or mobile layouts, and the sidebars are hidden if you make the window narrower. This setup is not included on brainrotgame.shop, this privacy page, the About page or individual game websites.</p>
     <p>When the advertising setup runs, it loads Google's advertising and privacy-message services. Google and its advertising partners may collect or receive information such as your IP address, browser and device information, identifiers, ad interactions, cookies and information in local storage. They use this information to select and deliver ads, measure advertising, limit repeated ads, and detect fraud and abuse.</p>
@@ -46,11 +46,11 @@
     <p>You can also manage Google's personalized advertising in <a href="https://myadcenter.google.com/">My Ad Center</a> and find participating companies' browser-based advertising opt-outs through <a href="https://optout.aboutads.info/">YourAdChoices</a>. These tools have their own scope and do not replace the choices in a site's privacy message. Your browser can also block or clear cookies and site storage; clearing storage may remove saved preferences and cause a consent message to appear again.</p>
     <p>This privacy page does not load advertising or consent-message scripts. Return to the <a href="https://gameslop.now/">gameslop.now homepage</a> on a supported desktop layout to use the on-page advertising controls when those services are active.</p>
     <h2>When you open a game</h2>
-    <p>Play buttons take you to the selected game's website. A game may store progress in your browser or use a server to manage rooms and multiplayer sessions. Check that game's information and controls for its specific behavior. Clearing the portal's sort preference does not delete a game's saved progress.</p>
+    <p>Game links take you to the selected game's website. A game may store progress in your browser or use a server to manage rooms and multiplayer sessions. Check that game's information and controls for its specific behavior. Clearing the portal's sort preference does not delete a game's saved progress.</p>
     <h2>Contact and support messages</h2>
-    <p>For questions about the site or its data handling, email <a href="mailto:support@gameslop.now">support@gameslop.now</a>. Support messages are forwarded through Porkbun to a Gmail inbox. We receive your email address and the message details you choose to send, and use them to respond to your request.</p>
+    <p>For questions about the site or its data handling, email <a href="mailto:support@gameslop.now">support@gameslop.now</a>. We receive your email address and the message details you choose to send, and use them to respond to your request.</p>
   </main>
-  <footer><a href="/">Browse all games</a><a href="/about.html">About the games</a></footer>
+  <footer><a href="/">Game Slop Now</a><a href="/about.html">About</a><a href="/privacy.html" aria-current="page">Privacy</a></footer>
 </div>
 </body>
 </html>

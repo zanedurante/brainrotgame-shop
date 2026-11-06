@@ -9,16 +9,18 @@ let playwright;
 try { playwright = await import('playwright'); }
 catch { playwright = await import('../../../gameslop-games/node_modules/playwright/index.mjs'); }
 
-const originalOrder = ['primordial', 'primordial-tactics', 'bagbrawl', 'deadpoint', 'headsup', 'grove', 'emberwild', 'emberfell', 'pelaglyph', 'hypercycle', 'litigation', 'hollowtide', 'grandstrat', 'vipertcg', 'battlelines', 'wowzaworka', 'scramble', 'elderhold', 'tabby'];
-const seededRanking = ['deadpoint', 'bagbrawl', 'primordial', 'primordial-tactics', 'headsup', 'grove', 'emberwild', 'emberfell', 'pelaglyph', 'hypercycle', 'litigation', 'hollowtide', 'grandstrat', 'vipertcg', 'battlelines', 'wowzaworka', 'scramble', 'elderhold', 'tabby'];
+const apiGames = ['primordial', 'primordial-tactics', 'bagbrawl', 'deadpoint', 'headsup', 'grove', 'emberwild', 'emberfell', 'pelaglyph', 'hypercycle', 'litigation', 'hollowtide', 'grandstrat', 'vipertcg', 'battlelines', 'wowzaworka', 'scramble', 'elderhold', 'tabby'];
+const hiddenGames = new Set(['primordial-tactics', 'headsup', 'emberwild', 'pelaglyph']);
+const originalOrder = apiGames.filter(slug => !hiddenGames.has(slug));
+const seededRanking = ['deadpoint', 'bagbrawl', 'primordial', 'grove', 'emberfell', 'hypercycle', 'litigation', 'hollowtide', 'grandstrat', 'vipertcg', 'battlelines', 'wowzaworka', 'scramble', 'elderhold', 'tabby'];
 const seeds = () => ({ primordial: 10, 'primordial-tactics': 0, bagbrawl: 30, deadpoint: 225, headsup: 0, grove: 0, emberwild: 0, emberfell: 0, pelaglyph: 0, hypercycle: 0, litigation: 0, hollowtide: 0, grandstrat: 0, vipertcg: 0, battlelines: 0, wowzaworka: 0, scramble: 0, elderhold: 0, tabby: 0 });
 const epoch = Date.parse('2026-09-26T12:00:00Z');
 const day = 24 * 60 * 60 * 1000;
-const map = value => Object.fromEntries(originalOrder.map(slug => [slug, value]));
+const map = value => Object.fromEntries(apiGames.map(slug => [slug, value]));
 const weeklySeeds = () => ({ ...map(0), primordial: 8, bagbrawl: 2, deadpoint: 1 });
 const updateSeeds = () => ({ ...map(null), hypercycle: '2026-09-26T10:00:00Z', pelaglyph: '2026-09-26T09:00:00Z', emberwild: '2026-09-25T09:00:00Z', primordial: '2026-09-24T09:00:00Z', 'primordial-tactics': '2026-09-24T09:00:00Z' });
-const updatedRanking = ['hypercycle', 'pelaglyph', 'emberwild', 'primordial', 'primordial-tactics', 'bagbrawl', 'deadpoint', 'headsup', 'grove', 'emberfell', 'litigation', 'hollowtide', 'grandstrat', 'vipertcg', 'battlelines', 'wowzaworka', 'scramble', 'elderhold', 'tabby'];
-const trendingRanking = ['primordial', 'bagbrawl', 'deadpoint', 'primordial-tactics', 'headsup', 'grove', 'emberwild', 'emberfell', 'pelaglyph', 'hypercycle', 'litigation', 'hollowtide', 'grandstrat', 'vipertcg', 'battlelines', 'wowzaworka', 'scramble', 'elderhold', 'tabby'];
+const updatedRanking = ['hypercycle', 'primordial', 'bagbrawl', 'deadpoint', 'grove', 'emberfell', 'litigation', 'hollowtide', 'grandstrat', 'vipertcg', 'battlelines', 'wowzaworka', 'scramble', 'elderhold', 'tabby'];
+const trendingRanking = ['primordial', 'bagbrawl', 'deadpoint', 'grove', 'emberfell', 'hypercycle', 'litigation', 'hollowtide', 'grandstrat', 'vipertcg', 'battlelines', 'wowzaworka', 'scramble', 'elderhold', 'tabby'];
 const html = await readFile(new URL('../index.html', import.meta.url));
 const script = await readFile(new URL('../assets/play-counts.js', import.meta.url));
 const sidebarAdsScript = await readFile(new URL('../assets/sidebar-ads.js', import.meta.url));
@@ -81,14 +83,16 @@ const waitOrder = (page, expected) => page.waitForFunction(expectedOrder =>
 
 test('shared play counts keep navigation native, totals truthful, and ranking current', async t => {
   try {
-    await t.test('loads all eighteen shared totals, ranks descending, and keeps original ties', async () => {
+    await t.test('loads fifteen listed games from all nineteen API totals, ranks descending, and keeps original ties', async () => {
       reset();
       const { page, errors } = await open();
       assert.deepEqual(await order(page), seededRanking);
       assert.equal(await countText(page, 'deadpoint'), '225 plays');
       assert.equal(await countText(page, 'grove'), '0 plays');
       assert.equal(await countText(page, 'hypercycle'), '0 plays');
-      assert.equal(await page.locator('.art svg').count(), 18);
+      assert.equal(await page.locator('.art > svg').count(), 15);
+      assert.equal(Object.keys(state.counts).length, 19);
+      for (const slug of hiddenGames) assert.equal(await page.locator(`[data-game="${slug}"]`).count(), 0);
       for (const slug of ['litigation', 'hollowtide']) {
         assert.equal(await countText(page, slug), '0 plays');
         assert.equal(await page.locator(`[data-game="${slug}"] a.play`).getAttribute('href'), `https://${slug}.gameslop.now`);
@@ -123,6 +127,59 @@ test('shared play counts keep navigation native, totals truthful, and ranking cu
       await page.close();
     });
 
+    await t.test('unlisted games remain in API metrics without returning to the catalog', async () => {
+      reset();
+      for (const slug of hiddenGames) {
+        state.counts[slug] = 999999;
+        state.weeklyCounts[slug] = 99999;
+        state.lastUpdated[slug] = '2026-09-27T00:00:00Z';
+      }
+      const { page, errors } = await open();
+      for (const [sort, expected] of [['plays', seededRanking], ['updated', updatedRanking], ['trending', trendingRanking]]) {
+        await page.locator('#sort-order').selectOption(sort);
+        assert.deepEqual(await order(page), expected);
+        for (const slug of hiddenGames) assert.equal(await page.locator(`[data-game="${slug}"]`).count(), 0);
+      }
+      assert.equal(Object.keys(state.counts).length, 19);
+      assert.deepEqual(errors, []);
+      await page.close();
+    });
+
+    await t.test('search filters full cards while preserving sorting and producing no play clicks', async () => {
+      reset();
+      const { page, errors } = await open();
+      const search = page.locator('#game-search');
+      await search.fill('scramble');
+      assert.deepEqual(await page.locator('.card:visible').evaluateAll(cards => cards.map(card => card.dataset.game)), ['scramble']);
+      await page.locator('#sort-order').selectOption('updated');
+      assert.deepEqual(await page.locator('.card:visible').evaluateAll(cards => cards.map(card => card.dataset.game)), ['scramble']);
+      await search.fill('not-a-game-that-exists');
+      assert.equal(await page.locator('.card:visible').count(), 0);
+      await search.fill('');
+      assert.equal(await page.locator('.card:visible').count(), 15);
+      assert.deepEqual(await order(page), updatedRanking);
+      assert.equal(state.requests.filter(request => request.method === 'POST').length, 0);
+      assert.deepEqual(errors, []);
+      await page.close();
+    });
+
+    for (const selector of ['.art > svg', 'h3', '.description', '[data-play-count]']) await t.test(`clicking the card's ${selector} records one play and navigates natively`, async () => {
+      reset();
+      const { page, errors } = await open();
+      const card = page.locator('[data-game="primordial"]');
+      const link = card.locator('a.play');
+      assert.equal(await card.locator('a').count(), 1, 'The card has one native link and no nested links');
+      assert.equal(await link.locator('button, input, select, textarea').count(), 0, 'The full-card link contains no nested interactive controls');
+      await link.evaluate((element, href) => { element.href = href; }, `${origin}/opened/primordial`);
+      await card.locator(selector).click();
+      await page.waitForURL(`${origin}/opened/primordial`);
+      await until(() => state.requests.some(request => request.method === 'POST'), 'The full-card click reaches the counter');
+      await delay(150);
+      assert.deepEqual(state.requests.filter(request => request.method === 'POST'), [{ method: 'POST', slug: 'primordial', body: '' }]);
+      assert.deepEqual(errors, []);
+      await page.close();
+    });
+
     await t.test('all three sorts use their real metrics, keep stable ties, and show lifetime plays', async () => {
       reset();
       const { page, errors } = await open();
@@ -131,7 +188,7 @@ test('shared play counts keep navigation native, totals truthful, and ranking cu
       assert.deepEqual(await order(page), updatedRanking);
       assert.equal(await page.locator('#ranking-title').textContent(), 'Recently updated');
       assert.equal(await page.locator('[data-game="hypercycle"] .count-detail').textContent(), 'Updated Sep 26, 2026');
-      assert.equal(await page.locator('[data-game="pelaglyph"] .count-detail').textContent(), 'Updated Sep 26, 2026');
+      assert.equal(await page.locator('[data-game="primordial"] .count-detail').textContent(), 'Updated Sep 24, 2026');
       assert.equal(await page.locator('[data-game="grove"] .count-detail').textContent(), 'Update date unavailable');
       await select.selectOption('trending');
       assert.deepEqual(await order(page), trendingRanking);
@@ -154,11 +211,11 @@ test('shared play counts keep navigation native, totals truthful, and ranking cu
       await link.evaluate(element => { element.href = '#opened-hypercycle'; });
       await link.click();
       await page.waitForURL(`${origin}/#opened-hypercycle`);
-      await waitOrder(page, ['deadpoint', 'bagbrawl', 'primordial', 'hypercycle', 'primordial-tactics', 'headsup', 'grove', 'emberwild', 'emberfell', 'pelaglyph', 'litigation', 'hollowtide', 'grandstrat', 'vipertcg', 'battlelines', 'wowzaworka', 'scramble', 'elderhold', 'tabby']);
+      await waitOrder(page, ['deadpoint', 'bagbrawl', 'primordial', 'hypercycle', 'grove', 'emberfell', 'litigation', 'hollowtide', 'grandstrat', 'vipertcg', 'battlelines', 'wowzaworka', 'scramble', 'elderhold', 'tabby']);
       assert.equal(await countText(page, 'hypercycle'), '1 play');
       assert.equal(await countText(page, 'deadpoint'), '225 plays');
       await page.locator('#sort-order').selectOption('trending');
-      assert.deepEqual(await order(page), ['primordial', 'bagbrawl', 'deadpoint', 'hypercycle', 'primordial-tactics', 'headsup', 'grove', 'emberwild', 'emberfell', 'pelaglyph', 'litigation', 'hollowtide', 'grandstrat', 'vipertcg', 'battlelines', 'wowzaworka', 'scramble', 'elderhold', 'tabby']);
+      assert.deepEqual(await order(page), ['primordial', 'bagbrawl', 'deadpoint', 'hypercycle', 'grove', 'emberfell', 'litigation', 'hollowtide', 'grandstrat', 'vipertcg', 'battlelines', 'wowzaworka', 'scramble', 'elderhold', 'tabby']);
       assert.equal(await page.locator('[data-game="hypercycle"] .count-detail').textContent(), '1 in the last 7 days');
       assert.deepEqual(state.requests.filter(request => request.method === 'POST'), [{ method: 'POST', slug: 'hypercycle', body: '' }]);
       assert.deepEqual(errors, []);
@@ -325,7 +382,7 @@ test('shared play counts keep navigation native, totals truthful, and ranking cu
       state.weeklyCounts.deadpoint = 0;
       state.asOf += 8 * day;
       await page.evaluate(() => window.dispatchEvent(new PageTransitionEvent('pageshow', { persisted: true })));
-      await waitOrder(page, ['bagbrawl', 'primordial', 'primordial-tactics', 'deadpoint', 'headsup', 'grove', 'emberwild', 'emberfell', 'pelaglyph', 'hypercycle', 'litigation', 'hollowtide', 'grandstrat', 'vipertcg', 'battlelines', 'wowzaworka', 'scramble', 'elderhold', 'tabby']);
+      await waitOrder(page, ['bagbrawl', 'primordial', 'deadpoint', 'grove', 'emberfell', 'hypercycle', 'litigation', 'hollowtide', 'grandstrat', 'vipertcg', 'battlelines', 'wowzaworka', 'scramble', 'elderhold', 'tabby']);
       assert.equal(await page.locator('[data-game="primordial"] .count-detail').textContent(), '0 in the last 7 days');
       assert.equal(await page.locator('[data-game="primordial"] .count-value').textContent(), '10');
       assert.equal(await page.locator('#ranking-note').textContent(), 'Play clicks in the last 7 days.');
@@ -351,7 +408,7 @@ test('shared play counts keep navigation native, totals truthful, and ranking cu
       state.weeklyCounts = { ...map(0), bagbrawl: 1 };
       state.lastUpdated = { ...map(null), grove: '2026-09-27T00:00:00Z' };
       await page.evaluate(() => window.dispatchEvent(new PageTransitionEvent('pageshow', { persisted: true })));
-      const expected = ['bagbrawl', 'primordial', 'primordial-tactics', 'deadpoint', 'headsup', 'grove', 'emberwild', 'emberfell', 'pelaglyph', 'hypercycle', 'litigation', 'hollowtide', 'grandstrat', 'vipertcg', 'battlelines', 'wowzaworka', 'scramble', 'elderhold', 'tabby'];
+      const expected = ['bagbrawl', 'primordial', 'deadpoint', 'grove', 'emberfell', 'hypercycle', 'litigation', 'hollowtide', 'grandstrat', 'vipertcg', 'battlelines', 'wowzaworka', 'scramble', 'elderhold', 'tabby'];
       await waitOrder(page, expected);
       const olderResponse = page.waitForResponse(response => response.request().method() === pending && response.url().includes('/api/plays'));
       (pending === 'GET' ? state.pendingGet : state.pendingPost)[0]();
@@ -492,11 +549,11 @@ test('shared play counts keep navigation native, totals truthful, and ranking cu
       reset();
       const { page } = await open();
       await page.locator('[data-game="primordial"] a.play').focus();
-      state.counts.pelaglyph = 12345;
+      state.counts.litigation = 12345;
       state.counts.grove = 1;
       await page.evaluate(() => window.dispatchEvent(new PageTransitionEvent('pageshow', { persisted: true })));
-      await waitOrder(page, ['pelaglyph', 'deadpoint', 'bagbrawl', 'primordial', 'grove', 'primordial-tactics', 'headsup', 'emberwild', 'emberfell', 'hypercycle', 'litigation', 'hollowtide', 'grandstrat', 'vipertcg', 'battlelines', 'wowzaworka', 'scramble', 'elderhold', 'tabby']);
-      assert.equal(await countText(page, 'pelaglyph'), '12,345 plays');
+      await waitOrder(page, ['litigation', 'deadpoint', 'bagbrawl', 'primordial', 'grove', 'emberfell', 'hypercycle', 'hollowtide', 'grandstrat', 'vipertcg', 'battlelines', 'wowzaworka', 'scramble', 'elderhold', 'tabby']);
+      assert.equal(await countText(page, 'litigation'), '12,345 plays');
       assert.equal(await countText(page, 'grove'), '1 play');
       assert.equal(await page.locator('[data-game="primordial"] a.play').evaluate(element => document.activeElement === element), true);
       assert.equal(state.requests.filter(request => request.method === 'GET').length, 2);
@@ -514,7 +571,7 @@ test('shared play counts keep navigation native, totals truthful, and ranking cu
         Object.defineProperty(document, 'visibilityState', { configurable: true, get: () => 'visible' });
         document.dispatchEvent(new Event('visibilitychange'));
       });
-      await waitOrder(page, ['emberfell', 'deadpoint', 'bagbrawl', 'primordial', 'primordial-tactics', 'headsup', 'grove', 'emberwild', 'pelaglyph', 'hypercycle', 'litigation', 'hollowtide', 'grandstrat', 'vipertcg', 'battlelines', 'wowzaworka', 'scramble', 'elderhold', 'tabby']);
+      await waitOrder(page, ['emberfell', 'deadpoint', 'bagbrawl', 'primordial', 'grove', 'hypercycle', 'litigation', 'hollowtide', 'grandstrat', 'vipertcg', 'battlelines', 'wowzaworka', 'scramble', 'elderhold', 'tabby']);
       assert.equal(await countText(page, 'emberfell'), '226 plays');
       assert.equal(state.requests.filter(request => request.method === 'GET').length, 2);
       await page.close();
@@ -542,7 +599,7 @@ test('shared play counts keep navigation native, totals truthful, and ranking cu
       assert.deepEqual(await order(page), seededRanking, 'The browser does not invent a total before the response');
       assert.equal(await countText(page, 'primordial'), '10 plays');
       state.pendingPost[0]();
-      await waitOrder(page, ['primordial', 'deadpoint', 'bagbrawl', 'primordial-tactics', 'headsup', 'grove', 'emberwild', 'emberfell', 'pelaglyph', 'hypercycle', 'litigation', 'hollowtide', 'grandstrat', 'vipertcg', 'battlelines', 'wowzaworka', 'scramble', 'elderhold', 'tabby']);
+      await waitOrder(page, ['primordial', 'deadpoint', 'bagbrawl', 'grove', 'emberfell', 'hypercycle', 'litigation', 'hollowtide', 'grandstrat', 'vipertcg', 'battlelines', 'wowzaworka', 'scramble', 'elderhold', 'tabby']);
       assert.equal(await countText(page, 'primordial'), '226 plays');
       assert.deepEqual(state.requests.filter(request => request.method === 'POST'), [{ method: 'POST', slug: 'primordial', body: '' }]);
       assert.deepEqual(errors, []);
@@ -572,7 +629,7 @@ test('shared play counts keep navigation native, totals truthful, and ranking cu
       await page.close();
     });
 
-    await t.test('counts sit below play links and fit a narrow phone viewport', async () => {
+    await t.test('counts remain readable inside full-card links and fit a narrow phone viewport', async () => {
       reset();
       const { page } = await open();
       for (const width of [390, 320]) {
@@ -584,7 +641,8 @@ test('shared play counts keep navigation native, totals truthful, and ranking cu
             const card = page.locator(`[data-game="${slug}"]`);
             const linkBox = await card.locator('a.play').boundingBox();
             const countBox = await card.locator('[data-play-count]').boundingBox();
-            assert.ok(countBox.y > linkBox.y + linkBox.height, `${slug} count is below its play button`);
+            assert.ok(countBox.y >= linkBox.y && countBox.y + countBox.height <= linkBox.y + linkBox.height + 1, `${slug} count stays inside its full-card link`);
+            assert.ok(countBox.x >= linkBox.x && countBox.x + countBox.width <= linkBox.x + linkBox.width + 1, `${slug} count stays within the card width`);
             assert.ok(countBox.width < width - 32, `${slug} count fits inside its card`);
           }
         }

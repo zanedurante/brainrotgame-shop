@@ -128,7 +128,7 @@ async function geometry(page) {
 async function portalGeometry(page) {
   await page.waitForFunction(() => document.querySelector('[data-game] [data-play-count]')?.textContent.includes('0 plays'));
   return page.evaluate(() => Object.fromEntries([
-    '.wrap', 'header', '.logo', '.logo .mark', '#brand', 'h1', '.lede', '.ranking-bar', '.grid', '.card[data-game]',
+    '.wrap', 'header', '.logo', '.logo .mark', '.brand > span:last-child', 'h1', '.hero-description', '.library-toolbar', '.grid', '.card[data-game]',
   ].map(selector => {
     const box = document.querySelector(selector).getBoundingClientRect();
     return [selector, { x: box.x, y: box.y, width: box.width, height: box.height }];
@@ -303,7 +303,7 @@ test('manual sidebar ads stay confined to eligible portal screens', async t => {
         const f = await fixture({ origin });
         assert.equal(f.sdkRequests(), 0);
         assert.equal(await f.page.locator('.ad-rail:visible').count(), 0);
-        assert.equal((await geometry(f.page)).content.width, 1040);
+        assert.equal((await geometry(f.page)).content.width, 1280);
         await f.close();
       });
     }
@@ -348,8 +348,8 @@ test('manual sidebar ads stay confined to eligible portal screens', async t => {
         const initial = await portalGeometry(f.page);
         assert.equal(f.sdkRequests(), 0, 'No Google request before the deferred sidebar loader executes');
         assert.equal(await f.page.locator('.ad-rail:visible').count(), 0);
-        assert.equal(initial['.logo .mark'].x, initial['.wrap'].x + 16 + 96,
-          'The desktop logo offset must exist in the initial document, independently of ad availability');
+        assert.equal(initial['.logo .mark'].x, initial['.wrap'].x + 16,
+          'The reserved sidebar columns keep the logo aligned to portal content from the initial document');
         await f.releaseLoader();
         await f.waitForHeldSdk();
         assert.equal(f.sdkRequests(), 1);
@@ -410,7 +410,7 @@ test('manual sidebar ads stay confined to eligible portal screens', async t => {
       assert.equal((await geometry(f.page)).content.x, 280);
       await f.page.locator('#sort-order').selectOption('trending');
       assert.equal(await f.page.locator('#sort-order').inputValue(), 'trending');
-      assert.equal(await f.page.locator('.card[data-game]').count(), 19);
+      assert.equal(await f.page.locator('.card[data-game]').count(), 15);
       await f.close();
     });
 
