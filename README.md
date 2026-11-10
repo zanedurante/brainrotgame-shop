@@ -353,3 +353,20 @@ lifetime totals, weekly events, tracking start, update dates, or export history.
 collector fingerprints the public assets and reads their matching `release.json` deployment date.
 Unchanged content retains its prior date. New exports require all eighteen counters; seventeen-game
 and earlier snapshots remain valid history on the same 72-hour schedule.
+
+## Arcade additions
+
+Billionaire Simulator, Half & Half, and Marble Mayhem are maintained directly in
+`zanedurante/gameslop-games` under their matching `games/` folders. Eligible game
+PRs use that monorepo's existing checks, automatic merge, and deployment receiver.
+
+| Game | Public host |
+| --- | --- |
+| Billionaire Simulator | https://billionaire-simulator.gameslop.now |
+| Half & Half | https://half-and-half.gameslop.now |
+| Marble Mayhem | https://marble-mayhem.gameslop.now |
+
+The portal tracks all 22 game identifiers, while 18 appear in the current listing.
+The three new games start at zero plays. Existing totals, weekly events, export
+history, and update dates are preserved. The update-date collector reads these
+games from the existing monorepo release tree.

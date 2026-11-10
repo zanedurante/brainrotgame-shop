@@ -194,7 +194,7 @@ class ExportTests(unittest.TestCase):
         self.assertIsNone(self.export())
         current = self.export(now=previous + timedelta(hours=72))
         self.assertEqual(json.loads(current.read_text())["counts"], self.counts)
-        self.assertEqual(len(self.counts), 19)
+        self.assertEqual(len(self.counts), 22)
         self.assertEqual(legacy.read_bytes(), original)
         with self.assertRaises(ValueError):
             exporter.validate_counts(counts)
@@ -217,7 +217,7 @@ class ExportTests(unittest.TestCase):
         self.assertIsNone(self.export(now=previous + timedelta(hours=71, minutes=59, seconds=59)))
         current = self.export(now=previous + timedelta(hours=72))
         self.assertEqual(json.loads(current.read_text())["counts"], self.counts)
-        self.assertEqual(len(self.counts), 19)
+        self.assertEqual(len(self.counts), 22)
         self.assertEqual(legacy.read_bytes(), original)
         with self.assertRaises(ValueError):
             exporter.validate_counts(counts)
@@ -240,7 +240,7 @@ class ExportTests(unittest.TestCase):
         self.assertIsNone(self.export(now=previous + timedelta(hours=71, minutes=59, seconds=59)))
         current = self.export(now=previous + timedelta(hours=72))
         self.assertEqual(json.loads(current.read_text())["counts"], self.counts)
-        self.assertEqual(len(self.counts), 19)
+        self.assertEqual(len(self.counts), 22)
         self.assertEqual(legacy.read_bytes(), original)
         with self.assertRaises(ValueError):
             exporter.validate_counts(counts)
@@ -250,6 +250,25 @@ class ExportTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             self.export(now=previous + timedelta(hours=144))
         self.assertEqual(len(list(self.output.glob("*.json"))), 2)
+
+    def test_nineteen_game_history_preserves_schedule_and_new_exports_require_arcade_games(self):
+        self.output.mkdir()
+        previous = self.now - timedelta(hours=24)
+        counts = {slug: self.counts[slug] for slug in exporter.PRE_ARCADE_SLUGS}
+        self.assertEqual(len(counts), 19)
+        legacy = self.output / ("plays-" + previous.strftime(exporter.STAMP) + ".json")
+        legacy.write_text(json.dumps({"exported_at": previous.isoformat().replace("+00:00", "Z"), "counts": counts}), encoding="utf-8")
+        original = legacy.read_bytes()
+        self.assertIsNone(self.export())
+        current = self.export(now=previous + timedelta(hours=72))
+        self.assertEqual(json.loads(current.read_text())["counts"], self.counts)
+        self.assertEqual(len(self.counts), 22)
+        self.assertEqual(legacy.read_bytes(), original)
+        with self.assertRaises(ValueError):
+            exporter.validate_counts(counts)
+        for slug in ("billionaire-simulator", "half-and-half", "marble-mayhem"):
+            with self.assertRaises(ValueError):
+                exporter.validate_counts({key: value for key, value in self.counts.items() if key != slug})
 
     def test_failed_atomic_publish_does_not_advance_the_schedule(self):
         first = self.export()
