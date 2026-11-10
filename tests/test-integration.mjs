@@ -12,12 +12,12 @@ const temporary = await mkdtemp(join(tmpdir(), 'gameslop-integration-'));
 const python = process.env.PORTAL_PYTHON || 'python';
 const database = join(temporary, 'plays.sqlite3');
 const updatesFile = join(temporary, 'updates.json');
-const apiGames = ['primordial', 'primordial-tactics', 'bagbrawl', 'deadpoint', 'headsup', 'grove', 'emberwild', 'emberfell', 'pelaglyph', 'hypercycle', 'litigation', 'hollowtide', 'grandstrat', 'vipertcg', 'battlelines', 'wowzaworka', 'scramble', 'elderhold', 'tabby'];
+const apiGames = ['primordial', 'primordial-tactics', 'bagbrawl', 'deadpoint', 'headsup', 'grove', 'emberwild', 'emberfell', 'pelaglyph', 'hypercycle', 'litigation', 'hollowtide', 'grandstrat', 'vipertcg', 'battlelines', 'wowzaworka', 'scramble', 'elderhold', 'tabby', 'billionaire-simulator', 'half-and-half', 'marble-mayhem'];
 const hiddenGames = new Set(['primordial-tactics', 'headsup', 'emberwild', 'pelaglyph']);
 const originalOrder = apiGames.filter(slug => !hiddenGames.has(slug));
-const expectedPlays = ['deadpoint', 'bagbrawl', 'primordial', 'grove', 'emberfell', 'hypercycle', 'litigation', 'hollowtide', 'grandstrat', 'vipertcg', 'battlelines', 'wowzaworka', 'scramble', 'elderhold', 'tabby'];
-const expectedUpdated = ['hypercycle', 'primordial', 'bagbrawl', 'deadpoint', 'grove', 'emberfell', 'litigation', 'hollowtide', 'grandstrat', 'vipertcg', 'battlelines', 'wowzaworka', 'scramble', 'elderhold', 'tabby'];
-const expectedTrending = ['primordial', 'bagbrawl', 'deadpoint', 'grove', 'emberfell', 'hypercycle', 'litigation', 'hollowtide', 'grandstrat', 'vipertcg', 'battlelines', 'wowzaworka', 'scramble', 'elderhold', 'tabby'];
+const expectedPlays = ['deadpoint', 'bagbrawl', 'primordial', 'grove', 'emberfell', 'hypercycle', 'litigation', 'hollowtide', 'grandstrat', 'vipertcg', 'battlelines', 'wowzaworka', 'scramble', 'elderhold', 'tabby', 'billionaire-simulator', 'half-and-half', 'marble-mayhem'];
+const expectedUpdated = ['hypercycle', 'primordial', 'bagbrawl', 'deadpoint', 'grove', 'emberfell', 'litigation', 'hollowtide', 'grandstrat', 'vipertcg', 'battlelines', 'wowzaworka', 'scramble', 'elderhold', 'tabby', 'billionaire-simulator', 'half-and-half', 'marble-mayhem'];
+const expectedTrending = ['primordial', 'bagbrawl', 'deadpoint', 'grove', 'emberfell', 'hypercycle', 'litigation', 'hollowtide', 'grandstrat', 'vipertcg', 'battlelines', 'wowzaworka', 'scramble', 'elderhold', 'tabby', 'billionaire-simulator', 'half-and-half', 'marble-mayhem'];
 await writeFile(updatesFile, JSON.stringify({ lastUpdated: { ...Object.fromEntries(apiGames.map(slug => [slug, null])), hypercycle: '2026-10-02T09:00:00Z', pelaglyph: '2026-09-26T09:00:00Z', emberwild: '2026-09-25T09:00:00Z', primordial: '2026-09-24T09:00:00Z', 'primordial-tactics': '2026-09-24T09:00:00Z' } }));
 function fixture(code) {
   const result = spawnSync(python, ['-c', `import sys, time, sqlite3\nfrom counter.server import PlayStore\nstore = PlayStore(sys.argv[1])\nconnection = store.connect()\nnow = int(time.time() * 1000)\n${code}\nconnection.close()`, database], { cwd: root, encoding: 'utf8' });
@@ -71,7 +71,7 @@ try {
   assert.deepEqual(await order(), expectedTrending);
   assert.equal(await page.locator('[data-game="deadpoint"] .count-value').textContent(), '225');
   assert.equal(await page.locator('[data-game="deadpoint"] .count-detail').textContent(), '1 in the last 7 days', 'Expired real events are excluded from the weekly window');
-  assert.match(await page.locator('#ranking-note').textContent(), /Weekly tracking started/);
+  assert.equal(await page.locator('#ranking-note').textContent(), '');
   await page.screenshot({ path: join(screenshots, 'desktop-trending.png'), fullPage: true });
   fixture("connection.execute('UPDATE play_events SET played_at_ms = ? WHERE slug = ?', (now - 7 * 86400000 - 10000, 'primordial'))");
   await page.evaluate(() => window.dispatchEvent(new PageTransitionEvent('pageshow', { persisted: true })));
@@ -106,7 +106,7 @@ try {
   assert.equal((await (await hypercyclePosted).allHeaders()).origin, origin);
   await secondPage.waitForFunction(() => document.querySelector('[data-game="hypercycle"] .count-value')?.textContent === '1');
   const allCounts = await (await fetch(`${origin}/api/plays`)).json();
-  assert.equal(Object.keys(allCounts.counts).length, 19, 'Unlisted games remain available to the backend');
+  assert.equal(Object.keys(allCounts.counts).length, 22, 'Unlisted games remain available to the backend');
   assert.equal(allCounts.counts.hypercycle, 1);
   assert.equal(allCounts.weeklyCounts.hypercycle, 1);
   assert.equal(allCounts.counts.deadpoint, 225);
@@ -180,6 +180,21 @@ try {
   assert.equal(afterElderhold.weeklyTrackingStartedAt, allCounts.weeklyTrackingStartedAt);
   for (const slug of apiGames.filter(slug => slug !== 'elderhold')) assert.equal(afterElderhold.counts[slug], afterScramble.counts[slug]);
   assert.equal(await secondPage.locator('[data-game="elderhold"] .count-detail').textContent(), '1 in the last 7 days');
+  let previousArcade = afterElderhold;
+  for (const slug of ['billionaire-simulator', 'half-and-half', 'marble-mayhem']) {
+    const link = secondPage.locator(`[data-game="${slug}"] .play`);
+    assert.equal(await link.getAttribute('href'), `https://${slug}.gameslop.now`);
+    assert.equal(previousArcade.counts[slug], 0);
+    await link.evaluate((element, slug) => { element.href = `#opened-${slug}`; }, slug);
+    await link.click();
+    await secondPage.waitForFunction(slug => document.querySelector(`[data-game="${slug}"] .count-value`)?.textContent === '1', slug);
+    const current = await (await fetch(`${origin}/api/plays`)).json();
+    assert.equal(current.counts[slug], 1);
+    assert.equal(current.weeklyCounts[slug], 1);
+    assert.equal(current.weeklyTrackingStartedAt, previousArcade.weeklyTrackingStartedAt);
+    for (const other of apiGames.filter(value => value !== slug)) assert.equal(current.counts[other], previousArcade.counts[other]);
+    previousArcade = current;
+  }
   assert.deepEqual(errors, []);
   await secondVisitor.close();
   console.log('PASS real API: three metric-based sorts, stable ties, unknown dates, lifetime totals, weekly expiry, native navigation, persistence, desktop/mobile layout.');

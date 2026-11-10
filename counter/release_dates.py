@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Record content changes in the eighteen fixed production games; never run game code.
+"""Record content changes in the fixed production game catalog; never run game code.
 
 Current files are hashed on each run. Only first observations consult the bounded
 game release manifest chain. Dates survive sibling releases and collector
@@ -19,9 +19,10 @@ import sys
 import tempfile
 
 SLUGS = ("primordial", "primordial-tactics", "bagbrawl", "deadpoint", "headsup",
-         "grove", "emberwild", "emberfell", "pelaglyph", "hypercycle", "litigation", "hollowtide", "grandstrat", "vipertcg", "battlelines", "wowzaworka", "scramble", "elderhold", "tabby")
+         "grove", "emberwild", "emberfell", "pelaglyph", "hypercycle", "litigation", "hollowtide", "grandstrat", "vipertcg", "battlelines", "wowzaworka", "scramble", "elderhold", "tabby", "billionaire-simulator", "half-and-half", "marble-mayhem")
 BUNDLE = {"primordial": "primordial-action", "primordial-tactics": "primordial",
-          "grove": "grove", "emberwild": "emberwild", "emberfell": "emberfell", "pelaglyph": "pelaglyph", "hypercycle": "hypercycle", "wowzaworka": "wowzaworka"}
+          "grove": "grove", "emberwild": "emberwild", "emberfell": "emberfell", "pelaglyph": "pelaglyph", "hypercycle": "hypercycle", "wowzaworka": "wowzaworka",
+          "billionaire-simulator": "billionaire-simulator", "half-and-half": "half-and-half", "marble-mayhem": "marble-mayhem"}
 STATIC_GAMES = ("litigation", "hollowtide", "grandstrat", "vipertcg", "battlelines", "scramble", "elderhold", "tabby")
 HYPERCYCLE_RUNTIME = ("serve.mjs", "hypercycle.mjs", "websocket.mjs")
 ALGORITHM = "sha256-path-size-content-v1"
