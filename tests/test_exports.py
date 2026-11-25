@@ -20,6 +20,22 @@ spec.loader.exec_module(exporter)
 
 
 class ExportTests(unittest.TestCase):
+
+    def test_twenty_two_entry_history_keeps_schedule_when_loopyard_is_added(self):
+        self.output.mkdir()
+        previous = self.now - timedelta(hours=36)
+        counts = {slug: self.counts[slug] for slug in exporter.PRE_LOOPYARD_SLUGS}
+        self.assertEqual(len(counts), 22)
+        legacy = self.output / ("plays-" + previous.strftime(exporter.STAMP) + ".json")
+        legacy.write_text(json.dumps({"exported_at": previous.isoformat().replace("+00:00", "Z"), "counts": counts}), encoding="utf-8")
+        original = legacy.read_bytes()
+        self.assertIsNone(self.export())
+        current = self.export(now=previous + timedelta(hours=72))
+        self.assertEqual(json.loads(current.read_text())["counts"], self.counts)
+        self.assertIn("loopyard", self.counts)
+        self.assertEqual(legacy.read_bytes(), original)
+
+
     def setUp(self):
         self.temporary = tempfile.TemporaryDirectory()
         self.root = Path(self.temporary.name).resolve()
@@ -194,7 +210,7 @@ class ExportTests(unittest.TestCase):
         self.assertIsNone(self.export())
         current = self.export(now=previous + timedelta(hours=72))
         self.assertEqual(json.loads(current.read_text())["counts"], self.counts)
-        self.assertEqual(len(self.counts), 22)
+        self.assertEqual(len(self.counts), 23)
         self.assertEqual(legacy.read_bytes(), original)
         with self.assertRaises(ValueError):
             exporter.validate_counts(counts)
@@ -217,7 +233,7 @@ class ExportTests(unittest.TestCase):
         self.assertIsNone(self.export(now=previous + timedelta(hours=71, minutes=59, seconds=59)))
         current = self.export(now=previous + timedelta(hours=72))
         self.assertEqual(json.loads(current.read_text())["counts"], self.counts)
-        self.assertEqual(len(self.counts), 22)
+        self.assertEqual(len(self.counts), 23)
         self.assertEqual(legacy.read_bytes(), original)
         with self.assertRaises(ValueError):
             exporter.validate_counts(counts)
@@ -240,7 +256,7 @@ class ExportTests(unittest.TestCase):
         self.assertIsNone(self.export(now=previous + timedelta(hours=71, minutes=59, seconds=59)))
         current = self.export(now=previous + timedelta(hours=72))
         self.assertEqual(json.loads(current.read_text())["counts"], self.counts)
-        self.assertEqual(len(self.counts), 22)
+        self.assertEqual(len(self.counts), 23)
         self.assertEqual(legacy.read_bytes(), original)
         with self.assertRaises(ValueError):
             exporter.validate_counts(counts)
@@ -262,7 +278,7 @@ class ExportTests(unittest.TestCase):
         self.assertIsNone(self.export())
         current = self.export(now=previous + timedelta(hours=72))
         self.assertEqual(json.loads(current.read_text())["counts"], self.counts)
-        self.assertEqual(len(self.counts), 22)
+        self.assertEqual(len(self.counts), 23)
         self.assertEqual(legacy.read_bytes(), original)
         with self.assertRaises(ValueError):
             exporter.validate_counts(counts)

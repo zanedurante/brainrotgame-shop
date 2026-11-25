@@ -16,8 +16,9 @@ except ImportError:  # Keep the same exporter testable on Windows development ma
     fcntl = None
     import msvcrt
 
-SLUGS = ("primordial", "primordial-tactics", "bagbrawl", "deadpoint", "headsup", "grove", "emberwild", "emberfell", "pelaglyph", "hypercycle", "litigation", "hollowtide", "grandstrat", "vipertcg", "battlelines", "wowzaworka", "scramble", "elderhold", "tabby", "billionaire-simulator", "half-and-half", "marble-mayhem")
-PRE_ARCADE_SLUGS = tuple(slug for slug in SLUGS if slug not in ("billionaire-simulator", "half-and-half", "marble-mayhem"))
+SLUGS = ("primordial", "primordial-tactics", "bagbrawl", "deadpoint", "headsup", "grove", "emberwild", "emberfell", "pelaglyph", "hypercycle", "litigation", "hollowtide", "grandstrat", "vipertcg", "battlelines", "wowzaworka", "scramble", "elderhold", "tabby", "billionaire-simulator", "half-and-half", "marble-mayhem", "loopyard")
+PRE_LOOPYARD_SLUGS = tuple(slug for slug in SLUGS if slug != "loopyard")
+PRE_ARCADE_SLUGS = tuple(slug for slug in PRE_LOOPYARD_SLUGS if slug not in ("billionaire-simulator", "half-and-half", "marble-mayhem"))
 PRE_TABBY_SLUGS = tuple(slug for slug in PRE_ARCADE_SLUGS if slug != "tabby")
 PRE_ELDERHOLD_SLUGS = tuple(slug for slug in PRE_TABBY_SLUGS if slug != "elderhold")
 PRE_SCRAMBLE_SLUGS = tuple(slug for slug in PRE_ELDERHOLD_SLUGS if slug != "scramble")
@@ -36,7 +37,7 @@ def validate_counts(counts, *, historical=False):
     # New snapshots require every current game, including the three arcade additions.
     expected = SLUGS
     if historical and isinstance(counts, dict):
-        for catalog in (PRE_HYPERCYCLE_SLUGS, PRE_BRIDGER_SLUGS, PRE_GRANDSTRAT_SLUGS, PRE_VIPERTCG_SLUGS, PRE_BATTLELINES_SLUGS, PRE_WOWZAWORKA_SLUGS, PRE_SCRAMBLE_SLUGS, PRE_ELDERHOLD_SLUGS, PRE_TABBY_SLUGS, PRE_ARCADE_SLUGS):
+        for catalog in (PRE_HYPERCYCLE_SLUGS, PRE_BRIDGER_SLUGS, PRE_GRANDSTRAT_SLUGS, PRE_VIPERTCG_SLUGS, PRE_BATTLELINES_SLUGS, PRE_WOWZAWORKA_SLUGS, PRE_SCRAMBLE_SLUGS, PRE_ELDERHOLD_SLUGS, PRE_TABBY_SLUGS, PRE_ARCADE_SLUGS, PRE_LOOPYARD_SLUGS):
             if set(counts) == set(catalog):
                 expected = catalog
                 break
