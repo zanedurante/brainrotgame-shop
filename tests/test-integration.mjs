@@ -12,12 +12,12 @@ const temporary = await mkdtemp(join(tmpdir(), 'gameslop-integration-'));
 const python = process.env.PORTAL_PYTHON || 'python';
 const database = join(temporary, 'plays.sqlite3');
 const updatesFile = join(temporary, 'updates.json');
-const apiGames = ['primordial', 'primordial-tactics', 'bagbrawl', 'deadpoint', 'headsup', 'grove', 'emberwild', 'emberfell', 'pelaglyph', 'hypercycle', 'litigation', 'hollowtide', 'grandstrat', 'vipertcg', 'battlelines', 'wowzaworka', 'scramble', 'elderhold', 'tabby', 'billionaire-simulator', 'half-and-half', 'marble-mayhem'];
+const apiGames = ['primordial', 'primordial-tactics', 'bagbrawl', 'deadpoint', 'headsup', 'grove', 'emberwild', 'emberfell', 'pelaglyph', 'hypercycle', 'litigation', 'hollowtide', 'grandstrat', 'vipertcg', 'battlelines', 'wowzaworka', 'scramble', 'elderhold', 'tabby', 'billionaire-simulator', 'half-and-half', 'marble-mayhem', 'loopyard'];
 const hiddenGames = new Set(['primordial-tactics', 'headsup', 'emberwild', 'pelaglyph']);
 const originalOrder = apiGames.filter(slug => !hiddenGames.has(slug));
-const expectedPlays = ['deadpoint', 'bagbrawl', 'primordial', 'grove', 'emberfell', 'hypercycle', 'litigation', 'hollowtide', 'grandstrat', 'vipertcg', 'battlelines', 'wowzaworka', 'scramble', 'elderhold', 'tabby', 'billionaire-simulator', 'half-and-half', 'marble-mayhem'];
-const expectedUpdated = ['hypercycle', 'primordial', 'bagbrawl', 'deadpoint', 'grove', 'emberfell', 'litigation', 'hollowtide', 'grandstrat', 'vipertcg', 'battlelines', 'wowzaworka', 'scramble', 'elderhold', 'tabby', 'billionaire-simulator', 'half-and-half', 'marble-mayhem'];
-const expectedTrending = ['primordial', 'bagbrawl', 'deadpoint', 'grove', 'emberfell', 'hypercycle', 'litigation', 'hollowtide', 'grandstrat', 'vipertcg', 'battlelines', 'wowzaworka', 'scramble', 'elderhold', 'tabby', 'billionaire-simulator', 'half-and-half', 'marble-mayhem'];
+const expectedPlays = ['deadpoint', 'bagbrawl', 'primordial', 'grove', 'emberfell', 'hypercycle', 'litigation', 'hollowtide', 'grandstrat', 'vipertcg', 'battlelines', 'wowzaworka', 'scramble', 'elderhold', 'tabby', 'billionaire-simulator', 'half-and-half', 'marble-mayhem', 'loopyard'];
+const expectedUpdated = ['hypercycle', 'primordial', 'bagbrawl', 'deadpoint', 'grove', 'emberfell', 'litigation', 'hollowtide', 'grandstrat', 'vipertcg', 'battlelines', 'wowzaworka', 'scramble', 'elderhold', 'tabby', 'billionaire-simulator', 'half-and-half', 'marble-mayhem', 'loopyard'];
+const expectedTrending = ['primordial', 'bagbrawl', 'deadpoint', 'grove', 'emberfell', 'hypercycle', 'litigation', 'hollowtide', 'grandstrat', 'vipertcg', 'battlelines', 'wowzaworka', 'scramble', 'elderhold', 'tabby', 'billionaire-simulator', 'half-and-half', 'marble-mayhem', 'loopyard'];
 await writeFile(updatesFile, JSON.stringify({ lastUpdated: { ...Object.fromEntries(apiGames.map(slug => [slug, null])), hypercycle: '2026-10-02T09:00:00Z', pelaglyph: '2026-09-26T09:00:00Z', emberwild: '2026-09-25T09:00:00Z', primordial: '2026-09-24T09:00:00Z', 'primordial-tactics': '2026-09-24T09:00:00Z' } }));
 function fixture(code) {
   const result = spawnSync(python, ['-c', `import sys, time, sqlite3\nfrom counter.server import PlayStore\nstore = PlayStore(sys.argv[1])\nconnection = store.connect()\nnow = int(time.time() * 1000)\n${code}\nconnection.close()`, database], { cwd: root, encoding: 'utf8' });
@@ -106,7 +106,7 @@ try {
   assert.equal((await (await hypercyclePosted).allHeaders()).origin, origin);
   await secondPage.waitForFunction(() => document.querySelector('[data-game="hypercycle"] .count-value')?.textContent === '1');
   const allCounts = await (await fetch(`${origin}/api/plays`)).json();
-  assert.equal(Object.keys(allCounts.counts).length, 22, 'Unlisted games remain available to the backend');
+  assert.equal(Object.keys(allCounts.counts).length, 23, 'Unlisted games remain available to the backend');
   assert.equal(allCounts.counts.hypercycle, 1);
   assert.equal(allCounts.weeklyCounts.hypercycle, 1);
   assert.equal(allCounts.counts.deadpoint, 225);
@@ -181,7 +181,7 @@ try {
   for (const slug of apiGames.filter(slug => slug !== 'elderhold')) assert.equal(afterElderhold.counts[slug], afterScramble.counts[slug]);
   assert.equal(await secondPage.locator('[data-game="elderhold"] .count-detail').textContent(), '1 in the last 7 days');
   let previousArcade = afterElderhold;
-  for (const slug of ['billionaire-simulator', 'half-and-half', 'marble-mayhem']) {
+  for (const slug of ['billionaire-simulator', 'half-and-half', 'marble-mayhem', 'loopyard']) {
     const link = secondPage.locator(`[data-game="${slug}"] .play`);
     assert.equal(await link.getAttribute('href'), `https://${slug}.gameslop.now`);
     assert.equal(previousArcade.counts[slug], 0);

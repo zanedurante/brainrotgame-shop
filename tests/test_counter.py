@@ -26,9 +26,9 @@ COUNTER = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(COUNTER)
 SLUGS = (
     "primordial", "primordial-tactics", "bagbrawl", "deadpoint", "headsup",
-    "grove", "emberwild", "emberfell", "pelaglyph", "hypercycle", "litigation", "hollowtide", "grandstrat", "vipertcg", "battlelines", "wowzaworka", "scramble", "elderhold", "tabby", "billionaire-simulator", "half-and-half", "marble-mayhem",
+    "grove", "emberwild", "emberfell", "pelaglyph", "hypercycle", "litigation", "hollowtide", "grandstrat", "vipertcg", "battlelines", "wowzaworka", "scramble", "elderhold", "tabby", "billionaire-simulator", "half-and-half", "marble-mayhem", "loopyard",
 )
-NEW_GAME_SLUGS = ("billionaire-simulator", "half-and-half", "marble-mayhem")
+NEW_GAME_SLUGS = ("billionaire-simulator", "half-and-half", "marble-mayhem", "loopyard")
 SEEDS = {slug: {"deadpoint": 225, "bagbrawl": 30, "primordial": 10}.get(slug, 0) for slug in SLUGS}
 ORIGIN = "https://gameslop.now"
 
@@ -393,6 +393,29 @@ class StoreMigrationAndWindowTests(unittest.TestCase):
         with closing(sqlite3.connect(self.db)) as connection:
             self.assertEqual(connection.execute("SELECT slug, played_at_ms FROM play_events ORDER BY rowid").fetchall(), events)
         for slug in NEW_GAME_SLUGS:
+            played = upgraded.metrics(slug)
+            self.assertEqual(played["counts"][slug], 1)
+            self.assertEqual(played["weeklyCounts"][slug], 1)
+        self.assertEqual(self.store().counts(), played["counts"])
+
+    def test_loopyard_starts_at_zero_and_preserves_twenty_two_entry_history(self):
+        old_slugs = tuple(slug for slug in SLUGS if slug not in ("loopyard",))
+        self.assertEqual(len(old_slugs), 22)
+        with patch.object(COUNTER, "SLUGS", old_slugs), patch.object(COUNTER, "INITIAL_COUNTS", {slug: SEEDS[slug] for slug in old_slugs}):
+            original = self.store()
+            original.metrics("deadpoint")
+            before = original.metrics("grove")
+        with closing(sqlite3.connect(self.db)) as connection:
+            events = connection.execute("SELECT slug, played_at_ms FROM play_events ORDER BY rowid").fetchall()
+        self.now += 1000
+        upgraded = self.store()
+        added = upgraded.metrics()
+        for key in ("counts", "weeklyCounts"):
+            self.assertEqual(added[key], dict(before[key], **dict.fromkeys(("loopyard",), 0)))
+        self.assertEqual(added["weeklyTrackingStartedAt"], before["weeklyTrackingStartedAt"])
+        with closing(sqlite3.connect(self.db)) as connection:
+            self.assertEqual(connection.execute("SELECT slug, played_at_ms FROM play_events ORDER BY rowid").fetchall(), events)
+        for slug in ("loopyard",):
             played = upgraded.metrics(slug)
             self.assertEqual(played["counts"][slug], 1)
             self.assertEqual(played["weeklyCounts"][slug], 1)

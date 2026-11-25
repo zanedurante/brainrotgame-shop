@@ -370,3 +370,11 @@ The portal tracks all 22 game identifiers, while 18 appear in the current listin
 The three new games start at zero plays. Existing totals, weekly events, export
 history, and update dates are preserved. The update-date collector reads these
 games from the existing monorepo release tree.
+
+## Loopyard
+
+Loopyard is a collaborative music studio at https://loopyard.gameslop.now, maintained in
+`bridger2500/loopyard`. Its independently checked public assets and private room runtime
+use the same restricted release pattern as the games. The portal lists 19 entries and
+tracks 23 identifiers; Loopyard begins at zero plays without resetting earlier counts,
+weekly history, update dates, or the 72-hour export schedule.

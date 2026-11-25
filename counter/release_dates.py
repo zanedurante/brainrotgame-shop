@@ -19,11 +19,11 @@ import sys
 import tempfile
 
 SLUGS = ("primordial", "primordial-tactics", "bagbrawl", "deadpoint", "headsup",
-         "grove", "emberwild", "emberfell", "pelaglyph", "hypercycle", "litigation", "hollowtide", "grandstrat", "vipertcg", "battlelines", "wowzaworka", "scramble", "elderhold", "tabby", "billionaire-simulator", "half-and-half", "marble-mayhem")
+         "grove", "emberwild", "emberfell", "pelaglyph", "hypercycle", "litigation", "hollowtide", "grandstrat", "vipertcg", "battlelines", "wowzaworka", "scramble", "elderhold", "tabby", "billionaire-simulator", "half-and-half", "marble-mayhem", "loopyard")
 BUNDLE = {"primordial": "primordial-action", "primordial-tactics": "primordial",
           "grove": "grove", "emberwild": "emberwild", "emberfell": "emberfell", "pelaglyph": "pelaglyph", "hypercycle": "hypercycle", "wowzaworka": "wowzaworka",
           "billionaire-simulator": "billionaire-simulator", "half-and-half": "half-and-half", "marble-mayhem": "marble-mayhem"}
-STATIC_GAMES = ("litigation", "hollowtide", "grandstrat", "vipertcg", "battlelines", "scramble", "elderhold", "tabby")
+STATIC_GAMES = ("litigation", "hollowtide", "grandstrat", "vipertcg", "battlelines", "scramble", "elderhold", "tabby", "loopyard")
 HYPERCYCLE_RUNTIME = ("serve.mjs", "hypercycle.mjs", "websocket.mjs")
 ALGORITHM = "sha256-path-size-content-v1"
 PUBLIC = frozenset(".html .htm .css .js .mjs .cjs .json .webmanifest .svg .png .jpg .jpeg .gif .webp .avif .ico .woff .woff2 .ttf .otf .eot .mp3 .ogg .wav .m4a .mp4 .webm .wasm".split())
